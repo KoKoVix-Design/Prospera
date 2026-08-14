@@ -596,6 +596,17 @@ window.addEventListener('DOMContentLoaded', ()=>{
     setTimeout(cleanup, 250);
     setTimeout(cleanup, 800);
   }catch(e){ console.warn('cleanup failed', e); }
+
+  // Additional cleanup: remove any empty header buttons (legacy markers)
+  try{
+    document.querySelectorAll('.section-header').forEach(h=>{
+      Array.from(h.querySelectorAll('button')).forEach(btn=>{
+        const txt = (btn.textContent||'').trim();
+        const hasChildren = btn.children && btn.children.length>0;
+        if(!btn.classList.contains('chev') && !btn.classList.contains('icon') && !hasChildren && txt.length===0){ btn.remove(); }
+      });
+    });
+  }catch(e){ console.warn('header-empty-button cleanup failed', e); }
 });
 
 // Export current workspace (sections + localStorage keys + visuals)
