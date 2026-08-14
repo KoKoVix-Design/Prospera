@@ -78,7 +78,7 @@ body{margin:0;font-family:Inter,Segoe UI,Arial,sans-serif;background:linear-grad
 
 /* Group header and icons */
 .group-header{padding:6px 10px;color:var(--muted);font-weight:700;font-size:13px;border-top:1px solid rgba(255,255,255,0.02);margin-top:8px}
-.section-icon{margin:0 8px;font-size:18px}
+.section-icon{margin:0 8px;font-size:18px;color:var(--accent-2)}
 
 /* Pyramid dashboard */
 .pyramid{margin-top:12px}
