@@ -88,9 +88,26 @@ let activePillar = null;
 
 function renderSidebar(){
   const list = document.getElementById('sectionsList'); list.innerHTML='';
-  // group sections by category
+  // dedupe sections by title (case-insensitive) and merge simple metadata
+  const unique = [];
+  const seen = new Set();
+  SECTIONS.forEach(s=>{
+    const k = (s.title||'').toString().trim().toLowerCase();
+    if(!seen.has(k)){
+      seen.add(k);
+      unique.push(Object.assign({}, s));
+    } else {
+      const ex = unique.find(u=> (u.title||'').toString().trim().toLowerCase()===k);
+      if(ex){ (s.subs||[]).forEach(sub=>{ if(!ex.subs.includes(sub)) ex.subs.push(sub); });
+        if(s.pillar) ex.pillar = ex.pillar || s.pillar;
+        if(s.category) ex.category = ex.category || s.category;
+        if(s.icon) ex.icon = ex.icon || s.icon;
+      }
+    }
+  });
+  // group sections by category using deduped list
   const groups = new Map();
-  SECTIONS.forEach(sec=>{
+  unique.forEach(sec=>{
     const cat = sec.category || 'Other';
     if(!groups.has(cat)) groups.set(cat, []);
     groups.get(cat).push(sec);
@@ -122,7 +139,7 @@ function renderSidebar(){
       const title = el('span','section-title',sec.title);
       title.title = 'Click to open section';
       title.addEventListener('click', ()=> toggleExpand(sec.id));
-      title.addEventListener('dblclick', ()=>{ const inp = el('input','section-edit'); inp.value = sec.title; header.replaceChild(inp, title); inp.focus(); inp.addEventListener('blur', ()=>{ if(inp.value.trim()) sec.title = inp.value.trim(); saveState(SECTIONS); renderSidebar(); }); inp.addEventListener('keydown',(e)=>{ if(e.key==='Enter'){ inp.blur(); } }); });
+      title.addEventListener('dblclick', ()=>{ const inp = el('input','section-edit'); inp.value = sec.title; header.replaceChild(inp, title); inp.focus(); inp.addEventListener('blur', ()=>{ const val = inp.value.trim(); if(!val){ renderSidebar(); return; } const dup = SECTIONS.find(s2=> s2.id!==sec.id && (s2.title||'').toString().trim().toLowerCase()===val.toLowerCase()); if(dup){ alert('A section with that title already exists'); renderSidebar(); return; } sec.title = val; saveState(SECTIONS); renderSidebar(); }); inp.addEventListener('keydown',(e)=>{ if(e.key==='Enter'){ inp.blur(); } }); });
       const right = el('div','sec-right');
       const addSub = el('button','icon','＋'); addSub.title='Add subsection'; addSub.addEventListener('click', (e)=>{ e.stopPropagation(); addSubInline(sec.id); });
       const del = el('button','icon','✕'); del.title='Delete section'; del.addEventListener('click',(e)=>{ e.stopPropagation(); deleteSection(sec.id); });
@@ -236,6 +253,8 @@ function addSubInline(sectionId){
 
 function addSection(title){
   if(!title) return;
+  const key = title.toString().trim().toLowerCase();
+  if(SECTIONS.some(s=> (s.title||'').toString().trim().toLowerCase()===key)){ alert('Section already exists'); return; }
   const sec = {id:uid('s_'), title, subs:[], meta:{}};
   SECTIONS.push(sec); saveState(SECTIONS); renderSidebar();
 }
@@ -449,7 +468,12 @@ async function importJSONFile(file){ const txt = await file.text(); try{ const o
 // keep previous nav for compatibility with some pages
 function buildLegacyNav(){
   const nav = document.getElementById('nav'); if(!nav) return;
-  SECTIONS.forEach(section=>{
+  nav.innerHTML = '';
+  // show deduped sections
+  const seen = new Set();
+  const list = [];
+  SECTIONS.forEach(s=>{ const k=(s.title||'').toString().trim().toLowerCase(); if(!seen.has(k)){ seen.add(k); list.push(s); } });
+  list.forEach(section=>{
     const wrap = el('div','nav-section');
     const btn = el('div','nav-button');
     const left = el('div','label',section.title);
