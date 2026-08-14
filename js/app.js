@@ -514,6 +514,7 @@ window.addEventListener('DOMContentLoaded', ()=>{
   const previewBtn = document.getElementById('previewBtn'); if(previewBtn){ previewBtn.addEventListener('click', ()=> showMigrationPreview()); }
   const resetBtn = document.getElementById('resetBtn'); if(resetBtn){ resetBtn.addEventListener('click', ()=> resetKokovixStorage()); }
   const repairBtn = document.getElementById('repairBtn'); if(repairBtn){ repairBtn.addEventListener('click', ()=>{ if(!confirm('Attempt a non-destructive repair by merging defaults where metadata is missing?')) return; repairSections(); }); }
+  const dumpBtn = document.getElementById('dumpBtn'); if(dumpBtn){ dumpBtn.addEventListener('click', ()=> exportDiagnostics()); }
   // legacy nav removed to avoid duplicate lists
   // Quote rotation
   const qEl = document.getElementById('quote'); if(qEl){ qEl.textContent = QUOTES[Math.floor(Math.random()*QUOTES.length)]; setInterval(()=>{ qEl.textContent = QUOTES[Math.floor(Math.random()*QUOTES.length)]; }, 8000); }
@@ -607,11 +608,24 @@ function repairSections(){
       saveState(norm);
       SECTIONS = norm;
       renderSidebar();
+      console.info('repairSections diagnostics:', diagnostics);
       alert('Repair applied. Changes: ' + diagnostics.map(d=> d.title+': '+d.changes.join(', ')).join(' | '));
     } else {
+      console.info('repairSections: no changes required', diagnostics);
       alert('No repair needed — data already healthy.');
     }
   }catch(e){ console.error('repairSections failed', e); alert('Repair failed: '+(e && e.message)); }
+}
+
+// Download current kokovix localStorage keys and sections for diagnostics
+function exportDiagnostics(){
+  try{
+    const data = { sectionsKey: STORAGE_KEY, sections: null, kokovix: {} };
+    data.sections = localStorage.getItem(STORAGE_KEY);
+    Object.keys(localStorage).forEach(k=>{ if(k.startsWith('kokovix.') || k===STORAGE_KEY) data.kokovix[k]=localStorage.getItem(k); });
+    const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+    const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'kokovix-diagnostic.json'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+  }catch(e){ console.error('exportDiagnostics failed', e); alert('Export failed: '+(e && e.message)); }
 }
 
 function blobToDataURL(blob){ return new Promise((res)=>{ const r = new FileReader(); r.onload = ()=> res(r.result); r.readAsDataURL(blob); }); }
