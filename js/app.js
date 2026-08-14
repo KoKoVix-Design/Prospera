@@ -506,6 +506,9 @@ window.addEventListener('DOMContentLoaded', ()=>{
   cleanSidebarDom();
   normalizeAndPersist();
   renderSidebar();
+  // Ensure no section is expanded on initial load
+  SECTIONS = SECTIONS.map(s=>{ s._open = false; return s; });
+  renderSidebar();
   document.getElementById('addSectionBtn').addEventListener('click', ()=>{
     const v = document.getElementById('newSectionTitle').value.trim(); if(!v) return alert('Enter a title'); addSection(v); document.getElementById('newSectionTitle').value='';
   });
@@ -529,6 +532,8 @@ window.addEventListener('DOMContentLoaded', ()=>{
   const qEl = document.getElementById('quote'); if(qEl){ qEl.textContent = QUOTES[Math.floor(Math.random()*QUOTES.length)]; setInterval(()=>{ qEl.textContent = QUOTES[Math.floor(Math.random()*QUOTES.length)]; }, 8000); }
   // render interactive pyramid
   renderPyramid();
+  // Ensure the main area shows the pyramid/dashboard instead of any lingering subsection
+  try{ renderPillarView(null); document.getElementById('page-title').textContent = 'Welcome to Kokovix'; }catch(e){}
   
   // One-time reset helper: clears all kokovix.* keys and restores DEFAULT sections.
   function resetKokovixStorage(){
