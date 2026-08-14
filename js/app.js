@@ -67,7 +67,7 @@ function normalizeSections(arr){
   const map = new Map();
   arr.forEach(s=>{
     const key = (s.title||'').toString().trim().toLowerCase();
-    if(!map.has(key)) map.set(key, {id:s.id||uid('s_'), title:s.title, subs: Array.isArray(s.subs)?s.subs.slice():[], category: s.category||'Other', icon: s.icon||'' });
+    if(!map.has(key)) map.set(key, {id:s.id||uid('s_'), title:s.title, subs: Array.isArray(s.subs)?s.subs.slice():[], category: s.category||'Other', icon: s.icon||'', pillar: s.pillar||null });
     else { // merge subs and metadata
       const existing = map.get(key);
       (s.subs||[]).forEach(sub=>{ if(!existing.subs.includes(sub)) existing.subs.push(sub); });
