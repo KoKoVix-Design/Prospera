@@ -88,105 +88,56 @@ let activePillar = null;
 
 function renderSidebar(){
   const list = document.getElementById('sectionsList'); list.innerHTML='';
-  // dedupe sections by title (case-insensitive) and merge simple metadata
+  // dedupe
   const unique = [];
   const seen = new Set();
-  SECTIONS.forEach(s=>{
-    const k = (s.title||'').toString().trim().toLowerCase();
-    if(!seen.has(k)){
-      seen.add(k);
-      unique.push(Object.assign({}, s));
-    } else {
-      const ex = unique.find(u=> (u.title||'').toString().trim().toLowerCase()===k);
-      if(ex){ (s.subs||[]).forEach(sub=>{ if(!ex.subs.includes(sub)) ex.subs.push(sub); });
-        if(s.pillar) ex.pillar = ex.pillar || s.pillar;
-        if(s.category) ex.category = ex.category || s.category;
-        if(s.icon) ex.icon = ex.icon || s.icon;
-      }
-    }
-  });
-  // group sections by category using deduped list
-  const groups = new Map();
-  unique.forEach(sec=>{
-    const cat = sec.category || 'Other';
-    if(!groups.has(cat)) groups.set(cat, []);
-    groups.get(cat).push(sec);
-  });
-  // preferred order for groups
-  const order = ['Core','Health','Habits & Mood','Goals & Reviews','Work & Learning','Finance & Trading','Content & Social','Personal Knowledge','Visualization & Media','Productivity Toolbox','Other'];
-  order.forEach(catName=>{
-    const items = groups.get(catName);
-    if(!items || items.length===0) return;
-    // if a pillar filter is active, only show sections belonging to that pillar
-    const visible = items.filter(sec => !activePillar || (sec.pillar && sec.pillar === activePillar));
-    if(visible.length===0) return;
-    const gh = el('div','group-header',catName);
+  SECTIONS.forEach(s=>{ const k=(s.title||'').toString().trim().toLowerCase(); if(!seen.has(k)){ seen.add(k); unique.push(Object.assign({}, s)); } else { const ex = unique.find(u=> (u.title||'').toString().trim().toLowerCase()===k); if(ex){ (s.subs||[]).forEach(sub=>{ if(!ex.subs.includes(sub)) ex.subs.push(sub); }); if(s.pillar) ex.pillar = ex.pillar || s.pillar; if(s.icon) ex.icon = ex.icon || s.icon; } } });
+  // group by pillars (in PILLARS order)
+  const pillarMap = new Map();
+  PILLARS.forEach(p=> pillarMap.set(p.title, []));
+  const other = [];
+  unique.forEach(s=>{ if(s.pillar && pillarMap.has(s.pillar)) pillarMap.get(s.pillar).push(s); else other.push(s); });
+  PILLARS.forEach(p=>{
+    let items = pillarMap.get(p.title) || [];
+    if(items.length===0) return;
+    if(activePillar && activePillar!==p.title) items = items.filter(i=> i.pillar===activePillar);
+    const gh = el('div','group-header'); gh.innerHTML = `<strong>${p.icon} ${p.title}</strong> <div style="font-size:12px;color:var(--muted)">${p.tagline}</div>`;
     list.appendChild(gh);
-    visible.forEach(sec=>{
+    items.forEach(sec=>{
       const li = el('li','section-item'); li.dataset.id = sec.id;
-      li.addEventListener('dragover',(e)=> onDragOver(e));
-      li.addEventListener('dragenter',(e)=>{ li.classList.add('drag-over'); });
-      li.addEventListener('dragleave',(e)=>{ li.classList.remove('drag-over'); });
-      li.addEventListener('drop',(e)=> onSectionDrop(e, sec.id));
+      li.addEventListener('dragover',(e)=> onDragOver(e)); li.addEventListener('dragenter',(e)=> li.classList.add('drag-over')); li.addEventListener('dragleave',(e)=> li.classList.remove('drag-over')); li.addEventListener('drop',(e)=> onSectionDrop(e, sec.id));
       const header = el('div','section-header');
-      const handle = el('button','drag-handle','≡'); handle.title='Drag to reorder'; header.appendChild(handle);
-      handle.addEventListener('mousedown', (e)=> e.preventDefault());
-      handle.addEventListener('pointerdown', ()=>{ li.draggable = true; });
-      handle.addEventListener('pointerup', ()=>{ li.draggable = false; });
-      handle.addEventListener('dragstart',(e)=> onSectionDragStart(e, sec.id));
+      const handle = el('button','drag-handle','≡'); handle.title='Drag to reorder'; header.appendChild(handle); handle.addEventListener('mousedown',(e)=>e.preventDefault()); handle.addEventListener('pointerdown', ()=>{ li.draggable=true; }); handle.addEventListener('pointerup', ()=>{ li.draggable=false; }); handle.addEventListener('dragstart',(e)=> onSectionDragStart(e, sec.id));
       const chevron = el('button','chev','▸'); chevron.addEventListener('click', ()=> toggleExpand(sec.id));
       const iconEl = el('span','section-icon', sec.icon || '');
-      const title = el('span','section-title',sec.title);
-      title.title = 'Click to open section';
-      title.addEventListener('click', ()=> toggleExpand(sec.id));
-      title.addEventListener('dblclick', ()=>{ const inp = el('input','section-edit'); inp.value = sec.title; header.replaceChild(inp, title); inp.focus(); inp.addEventListener('blur', ()=>{ const val = inp.value.trim(); if(!val){ renderSidebar(); return; } const dup = SECTIONS.find(s2=> s2.id!==sec.id && (s2.title||'').toString().trim().toLowerCase()===val.toLowerCase()); if(dup){ alert('A section with that title already exists'); renderSidebar(); return; } sec.title = val; saveState(SECTIONS); renderSidebar(); }); inp.addEventListener('keydown',(e)=>{ if(e.key==='Enter'){ inp.blur(); } }); });
-      const right = el('div','sec-right');
-      const addSub = el('button','icon','＋'); addSub.title='Add subsection'; addSub.addEventListener('click', (e)=>{ e.stopPropagation(); addSubInline(sec.id); });
-      const del = el('button','icon','✕'); del.title='Delete section'; del.addEventListener('click',(e)=>{ e.stopPropagation(); deleteSection(sec.id); });
-      right.appendChild(addSub); right.appendChild(del);
+      const title = el('span','section-title', sec.title); title.title='Click to open section'; title.addEventListener('click', ()=> toggleExpand(sec.id));
+      const right = el('div','sec-right'); const addSub = el('button','icon','＋'); addSub.title='Add subsection'; addSub.addEventListener('click',(e)=>{ e.stopPropagation(); addSubInline(sec.id); }); const del = el('button','icon','✕'); del.title='Delete section'; del.addEventListener('click',(e)=>{ e.stopPropagation(); deleteSection(sec.id); }); right.appendChild(addSub); right.appendChild(del);
       header.appendChild(chevron); header.appendChild(iconEl); header.appendChild(title); header.appendChild(right);
       li.appendChild(header);
       const sublist = el('ul','sub-list'); sublist.style.display = sec._open ? 'block' : 'none';
-      sec.subs.forEach((s, idx)=>{
-        const si = el('li','sub-item'); si.draggable = true; si.dataset.sid = sec.id; si.dataset.subidx = idx;
-        si.addEventListener('dragstart',(e)=> onSubDragStart(e, sec.id, idx));
-        si.addEventListener('dragover',(e)=> onDragOver(e));
-        si.addEventListener('dragenter',(e)=>{ si.classList.add('drag-over'); });
-        si.addEventListener('dragleave',(e)=>{ si.classList.remove('drag-over'); });
-        si.addEventListener('drop',(e)=> onSubDrop(e, sec.id, idx));
-        const sn = el('span','sub-name', s);
-        sn.addEventListener('click', ()=> openSubsection(sec.id, s));
-        sn.addEventListener('dblclick', ()=>{ const inp = el('input','sub-edit'); inp.value = s; si.replaceChild(inp, sn); inp.focus(); inp.addEventListener('blur', ()=>{ if(inp.value.trim()){ sec.subs[idx]=inp.value.trim(); saveState(SECTIONS); renderSidebar(); openSubsection(sec.id, sec.subs[idx]); } else renderSidebar(); }); inp.addEventListener('keydown',(e)=>{ if(e.key==='Enter') inp.blur(); }); });
-        const sdel = el('button','icon small','−'); sdel.title='Delete subsection'; sdel.addEventListener('click',(e)=>{ e.stopPropagation(); if(confirm('Delete subsection?')){ sec.subs.splice(idx,1); saveState(SECTIONS); renderSidebar(); }});
-        si.appendChild(sn); si.appendChild(sdel); sublist.appendChild(si);
-      });
-      li.appendChild(sublist);
-      list.appendChild(li);
+      sec.subs.forEach((s, idx)=>{ const si = el('li','sub-item'); si.draggable=true; si.dataset.sid=sec.id; si.dataset.subidx=idx; si.addEventListener('dragstart',(e)=> onSubDragStart(e, sec.id, idx)); si.addEventListener('dragover',(e)=> onDragOver(e)); si.addEventListener('dragenter',(e)=> si.classList.add('drag-over')); si.addEventListener('dragleave',(e)=> si.classList.remove('drag-over')); si.addEventListener('drop',(e)=> onSubDrop(e, sec.id, idx)); const sn = el('span','sub-name', s); sn.addEventListener('click', ()=> openSubsection(sec.id, s)); const sdel = el('button','icon small','−'); sdel.title='Delete subsection'; sdel.addEventListener('click',(e)=>{ e.stopPropagation(); if(confirm('Delete subsection?')){ sec.subs.splice(idx,1); saveState(SECTIONS); renderSidebar(); }}); si.appendChild(sn); si.appendChild(sdel); sublist.appendChild(si); });
+      li.appendChild(sublist); list.appendChild(li);
     });
   });
+  // other bucket
+  if(other.length){ const gh = el('div','group-header','Other'); list.appendChild(gh); other.forEach(sec=>{ const li = el('li','section-item'); li.textContent = sec.title; list.appendChild(li); }); }
 }
 
 function focusPillar(pillarTitle){
   if(activePillar === pillarTitle) { activePillar = null; } else { activePillar = pillarTitle; }
   renderSidebar();
   renderPyramid();
-  if(activePillar){
-    const first = SECTIONS.find(s=> s.pillar === activePillar);
-    if(first && first.subs && first.subs[0]){
-      // open first subsection for quick focus
-      openSubsection(first.id, first.subs[0]);
-    }
-  }
+  renderPillarView(activePillar);
 }
 
 function renderPyramid(){
-  const container = document.getElementById('pyramid');
+  const container = document.getElementById('dashboard') || document.getElementById('pyramid');
   if(!container) return;
   container.innerHTML='';
   const ns = 'http://www.w3.org/2000/svg';
-  const pctWidth = Math.max(140, container.clientWidth || 160);
-  const width = pctWidth; const height = 220;
-  const svg = document.createElementNS(ns, 'svg'); svg.setAttribute('viewBox', `0 0 ${width} ${height}`); svg.setAttribute('preserveAspectRatio','xMidYMid meet'); svg.style.width='100%'; svg.style.height='140px';
+  const pctWidth = Math.max(320, container.clientWidth || 320);
+  const width = pctWidth; const height = 320;
+  const svg = document.createElementNS(ns, 'svg'); svg.setAttribute('viewBox', `0 0 ${width} ${height}`); svg.setAttribute('preserveAspectRatio','xMidYMid meet'); svg.classList.add('pyramid-large');
   const n = PILLARS.length;
   const layerH = height / n;
   const shrink = 0.12; // fraction to shrink each layer relative to full width
@@ -217,6 +168,27 @@ function renderPyramid(){
     svg.appendChild(tx);
   });
   container.appendChild(svg);
+  // if active pillar, also render its sections under the pyramid
+  if(activePillar) renderPillarView(activePillar);
+}
+
+function renderPillarView(pillarTitle){
+  const main = document.getElementById('main-view'); if(!main) return;
+  main.innerHTML = '';
+  if(!pillarTitle){ main.appendChild(el('p',null,'Choose a pillar from the pyramid above to view its sections.')); return; }
+  const p = PILLARS.find(x=> x.title===pillarTitle);
+  const header = el('div','card'); const h = el('h2',null,`${p.icon} ${p.title}`); const tag = el('div',null,p.tagline); tag.className='subtitle'; header.appendChild(h); header.appendChild(tag); main.appendChild(header);
+  const wrap = el('div','pillar-sections');
+  const secs = SECTIONS.filter(s=> s.pillar === pillarTitle);
+  secs.forEach(s=>{
+    const card = el('div','section-card'); const ic = el('div','ico', s.icon||''); const t = el('div',null,s.title); card.appendChild(ic); card.appendChild(t);
+    card.addEventListener('click', ()=>{ // open first subsection if any
+      if(s.subs && s.subs[0]){ openSubsection(s.id, s.subs[0]); } else { alert('No subsections found for this section.'); }
+      activePillar = pillarTitle; renderSidebar();
+    });
+    wrap.appendChild(card);
+  });
+  main.appendChild(wrap);
 }
 
 // Remove unexpected legacy/duplicate elements inside the sidebar
