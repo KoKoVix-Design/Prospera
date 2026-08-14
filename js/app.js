@@ -514,6 +514,7 @@ window.addEventListener('DOMContentLoaded', ()=>{
   const previewBtn = document.getElementById('previewBtn'); if(previewBtn){ previewBtn.addEventListener('click', ()=> showMigrationPreview()); }
   const resetBtn = document.getElementById('resetBtn'); if(resetBtn){ resetBtn.addEventListener('click', ()=> resetKokovixStorage()); }
   const repairBtn = document.getElementById('repairBtn'); if(repairBtn){ repairBtn.addEventListener('click', ()=>{ if(!confirm('Attempt a non-destructive repair by merging defaults where metadata is missing?')) return; repairSections(); }); }
+  const applyRepairBtn = document.getElementById('applyRepairBtn'); if(applyRepairBtn){ applyRepairBtn.addEventListener('click', ()=>{ try{ repairSections(); showDiagnostics(); localStorage.setItem('kokovix.diag_shown_v1','1'); }catch(e){ alert('Repair failed: '+(e&&e.message)); } }); }
   const dumpBtn = document.getElementById('dumpBtn'); if(dumpBtn){ dumpBtn.addEventListener('click', ()=> exportDiagnostics()); }
   const showDiagBtn = document.getElementById('showDiagBtn'); if(showDiagBtn){ showDiagBtn.addEventListener('click', ()=> showDiagnostics()); }
   // legacy nav removed to avoid duplicate lists
