@@ -94,6 +94,15 @@ let activePillar = null;
 
 function renderSidebar(){
   const list = document.getElementById('sectionsList'); list.innerHTML='';
+  // Add a Home item at the top to return to the pyramid/dashboard
+  try{
+    const homeLi = el('li','section-item home-item');
+    const homeHeader = el('div','section-header');
+    const homeIcon = el('span','section-icon','🏠');
+    const homeTitle = el('span','section-title','Home');
+    homeTitle.addEventListener('click', ()=>{ renderPillarView(null); document.getElementById('page-title').textContent = 'Welcome to Kokovix'; if(window.matchMedia && window.matchMedia('(max-width:900px)').matches){ const a = document.querySelector('.sidebar'); const o = document.querySelector('.content-overlay'); if(a) a.classList.remove('open'); if(o) o.classList.remove('show'); } });
+    homeHeader.appendChild(homeIcon); homeHeader.appendChild(homeTitle); homeLi.appendChild(homeHeader); list.appendChild(homeLi);
+  }catch(e){/* ignore if element missing */}
   // dedupe
   const unique = [];
   const seen = new Set();
