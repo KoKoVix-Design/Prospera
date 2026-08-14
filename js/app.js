@@ -556,33 +556,62 @@ async function exportJSON(){
   const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'kokovix-backup.json'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
 }
 
-// Non-destructive repair: merge DEFAULT metadata (pillar/category/icon/subs) into stored sections
+// Non-destructive repair: smarter merge of DEFAULT metadata into stored sections
 function repairSections(){
   try{
     let changed = false;
     const raw = loadState();
-    // map defaults by normalized title
-    const defMap = new Map(); DEFAULT.forEach(d=> defMap.set((d.title||'').toString().trim().toLowerCase(), d));
+    const diagnostics = [];
+    const defMap = new Map(DEFAULT.map(d=>[(d.title||'').toString().trim().toLowerCase(), d]));
+    const defById = new Map(DEFAULT.map(d=>[d.id, d]));
+
     raw.forEach(s=>{
       if(!s || !s.title) return;
-      const key = s.title.toString().trim().toLowerCase();
-      const def = defMap.get(key);
+      const key = s.title.toString().trim();
+      const keyL = key.toLowerCase();
+      // try exact title or id match first
+      let def = defMap.get(keyL) || defById.get(s.id);
+      // fuzzy matches: title contains, default subs contain this title, or vice versa
+      if(!def){
+        def = DEFAULT.find(d=>{
+          const dt = (d.title||'').toString().toLowerCase();
+          if(dt && (keyL.includes(dt) || dt.includes(keyL))) return true;
+          if(Array.isArray(d.subs) && d.subs.some(ss=> ss.toString().toLowerCase()===keyL)) return true;
+          return false;
+        });
+      }
+
+      const changes = [];
       if(def){
-        // ensure subs array
-        if(!Array.isArray(s.subs) || s.subs.length===0){ s.subs = Array.isArray(def.subs)? def.subs.slice():[]; changed = true; }
-        // ensure pillar/category/icon
-        if(!s.pillar && def.pillar){ s.pillar = def.pillar; changed = true; }
-        if(!s.category && def.category){ s.category = def.category; changed = true; }
-        if(!s.icon && def.icon){ s.icon = def.icon; changed = true; }
-        // merge missing default subs
+        if(!Array.isArray(s.subs) || s.subs.length===0){ s.subs = Array.isArray(def.subs)? def.subs.slice():[]; changes.push('subs'); }
+        if(!s.pillar && def.pillar){ s.pillar = def.pillar; changes.push('pillar'); }
+        if(!s.category && def.category){ s.category = def.category; changes.push('category'); }
+        if(!s.icon && def.icon){ s.icon = def.icon; changes.push('icon'); }
         if(Array.isArray(def.subs)){
-          def.subs.forEach(sub=>{ if(!s.subs.includes(sub)){ s.subs.push(sub); changed = true; } });
+          def.subs.forEach(sub=>{ if(!s.subs.includes(sub)){ s.subs.push(sub); changes.push('added sub:'+sub); } });
+        }
+      } else {
+        // try map pillar from existing category
+        if(!s.pillar && s.category){
+          const catL = s.category.toString().toLowerCase();
+          const p = PILLARS.find(pp=> pp.title.toLowerCase().includes(catL) || catL.includes(pp.title.toLowerCase()));
+          if(p){ s.pillar = p.title; changes.push('pillar from category->'+p.title); }
         }
       }
+
+      if(changes.length){ changed = true; diagnostics.push({title: s.title, changes}); }
     });
-    if(changed){ const norm = normalizeSections(raw); saveState(norm); SECTIONS = norm; renderSidebar(); alert('Repair applied — missing metadata merged from defaults.'); }
-    else { alert('No repair needed — data looks healthy.'); }
-  }catch(e){ console.error('repairSections failed', e); alert('Repair failed: '+e.message); }
+
+    if(changed){
+      const norm = normalizeSections(raw);
+      saveState(norm);
+      SECTIONS = norm;
+      renderSidebar();
+      alert('Repair applied. Changes: ' + diagnostics.map(d=> d.title+': '+d.changes.join(', ')).join(' | '));
+    } else {
+      alert('No repair needed — data already healthy.');
+    }
+  }catch(e){ console.error('repairSections failed', e); alert('Repair failed: '+(e && e.message)); }
 }
 
 function blobToDataURL(blob){ return new Promise((res)=>{ const r = new FileReader(); r.onload = ()=> res(r.result); r.readAsDataURL(blob); }); }
