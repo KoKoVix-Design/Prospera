@@ -1,13 +1,17 @@
 const DEFAULT = [
-  {id:'health', title:'Health', subs:['RHR','VO2Max','Weight','Latest Health Report','Daily Exercises']},
-  {id:'morning', title:'Morning Rituals', subs:['Meditation','Affirmations','Journal']},
+  {id:'health', title:'Health', subs:['RHR','VO2Max','Weight','Latest Health Report','Daily Exercises','Nutrition']},
+  {id:'morning', title:'Morning Rituals', subs:['Gratitude','Meditation','Affirmations','Journal']},
   {id:'plan', title:'Plan My Day', subs:['To Do List','One Thing for Day']},
   {id:'reflection', title:'Reflection', subs:['Daily','Weekly','Monthly']},
   {id:'goals', title:'Goals', subs:['Weekly','Monthly','Yearly']},
   {id:'research', title:'Research', subs:['Daily','Weekly','Monthly']},
   {id:'books', title:'Books', subs:['To Read','Completed']},
   {id:'visualization', title:'Visualization', subs:['Gallery','Vision Board']},
-  {id:'productivity', title:'Productivity Methods', subs:['Deep Work','Pomodoro','Eisenhower Matrix','Time Blocking','Two-Minute Rule']}
+  {id:'productivity', title:'Productivity Methods', subs:['Deep Work','Pomodoro','Eisenhower Matrix','Time Blocking','Two-Minute Rule']},
+  {id:'habits', title:'Habits', subs:['Tracker','Streaks']},
+  {id:'mood', title:'Mood', subs:['Daily Mood','Mood Notes']},
+  {id:'sleep', title:'Sleep', subs:['Sleep Quality','Sleep Notes']},
+  {id:'hydration', title:'Hydration', subs:['Water Intake']}
 ];
 
 const QUOTES = [
@@ -28,11 +32,32 @@ function loadState(){
   try{ return JSON.parse(s); }catch(e){ return JSON.parse(JSON.stringify(DEFAULT)); }
 }
 
+// load state and normalize duplicates
+function loadAndNormalize(){
+  const raw = loadState();
+  const norm = normalizeSections(raw.concat([]));
+  saveState(norm);
+  return norm;
+}
+
+function normalizeSections(arr){
+  const map = new Map();
+  arr.forEach(s=>{
+    const key = (s.title||'').toString().trim().toLowerCase();
+    if(!map.has(key)) map.set(key, {id:s.id||uid('s_'), title:s.title, subs: Array.isArray(s.subs)?s.subs.slice():[] });
+    else { // merge subs
+      const existing = map.get(key);
+      (s.subs||[]).forEach(sub=>{ if(!existing.subs.includes(sub)) existing.subs.push(sub); });
+    }
+  });
+  return Array.from(map.values());
+}
+
 function saveState(data){ localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }
 
 function el(tag, cls, txt){const e=document.createElement(tag); if(cls) e.className=cls; if(txt!==undefined) e.textContent=txt; return e}
 
-let SECTIONS = loadState();
+let SECTIONS = loadAndNormalize();
 
 function renderSidebar(){
   const list = document.getElementById('sectionsList'); list.innerHTML='';
@@ -135,6 +160,10 @@ function addSubsectionPrompt(sectionId){
 
 function openSubsection(sectionId, sub){
   const sec = SECTIONS.find(s=>s.id===sectionId); if(!sec) return; if(!sec.subs.includes(sub)) return;
+  // Special case: Meditation timer UI
+  if(sectionId==='morning' && /meditat/i.test(sub)){
+    return openMeditation(sectionId, sub);
+  }
   const title = document.getElementById('page-title'); title.textContent = `${sec.title} — ${sub}`;
   const content = document.getElementById('content'); content.innerHTML = '';
   const bc = el('div','breadcrumb',`Home / ${sec.title} / ${sub}`); content.appendChild(bc);
@@ -180,6 +209,37 @@ function openSubsection(sectionId, sub){
 
   loadHistory();
   content.appendChild(container);
+}
+
+function openMeditation(sectionId, sub){
+  const key = `kokovix.timer.${sectionId}.${sub}`;
+  const content = document.getElementById('content'); content.innerHTML='';
+  const bc = el('div','breadcrumb',`Home / Morning Rituals / ${sub}`); content.appendChild(bc);
+  const box = el('div','card'); const h = el('h2',null,sub); box.appendChild(h);
+
+  const controls = el('div','med-controls');
+  const input = el('input','timer-input'); input.type='number'; input.min=1; input.value = localStorage.getItem(key + '.mins') || 10; input.title='Minutes';
+  const start = el('button','btn','Start'); const stop = el('button','btn small','Stop'); const reset = el('button','btn small','Reset');
+  const display = el('div','timer-display', formatTime((parseInt(input.value)||10)*60));
+  controls.appendChild(input); controls.appendChild(start); controls.appendChild(stop); controls.appendChild(reset); box.appendChild(controls); box.appendChild(display);
+
+  let timerId = null; let remaining = (parseInt(input.value)||10)*60;
+  function tick(){ remaining--; display.textContent = formatTime(remaining); if(remaining<=0){ clearInterval(timerId); timerId=null; recordSession('completed'); alert('Meditation complete'); }}
+  start.addEventListener('click', ()=>{ if(timerId) return; remaining = (parseInt(input.value)||10)*60; display.textContent = formatTime(remaining); timerId = setInterval(tick,1000); localStorage.setItem(key + '.mins', input.value); });
+  stop.addEventListener('click', ()=>{ if(!timerId) return; clearInterval(timerId); timerId=null; recordSession('stopped'); });
+  reset.addEventListener('click', ()=>{ if(timerId){ clearInterval(timerId); timerId=null; } remaining = (parseInt(input.value)||10)*60; display.textContent = formatTime(remaining); });
+
+  function formatTime(s){ const m = Math.floor(s/60); const sec = s%60; return `${m.toString().padStart(2,'0')}:${sec.toString().padStart(2,'0')}`; }
+
+  function recordSession(status){ const raw = localStorage.getItem(key + '.history'); const arr = raw?JSON.parse(raw):[]; arr.push({t:Date.now(), mins: parseInt(input.value)||0, status}); localStorage.setItem(key + '.history', JSON.stringify(arr)); }
+
+  // show recent sessions
+  const sessWrap = el('div','card'); const sh = el('h4',null,'Sessions'); const sl = el('ul','history-list'); sessWrap.appendChild(sh); sessWrap.appendChild(sl);
+  function loadSessions(){ const raw = localStorage.getItem(key + '.history'); const arr = raw?JSON.parse(raw):[]; sl.innerHTML=''; arr.slice().reverse().forEach(it=>{ const li = el('li','history-item', `${new Date(it.t).toLocaleString()} — ${it.mins} min — ${it.status}`); sl.appendChild(li); }); }
+  loadSessions();
+
+  box.appendChild(sessWrap);
+  content.appendChild(box);
 }
 
 // Visualization gallery handler

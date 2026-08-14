@@ -11,7 +11,7 @@
 html,body,#content{height:100%}
 body{margin:0;font-family:Inter,Segoe UI,Arial,sans-serif;background:linear-gradient(180deg,var(--bg),#08111a);color:var(--text)}
 .app{display:flex;height:100vh;overflow:hidden}
-.sidebar{width:300px;background:var(--panel);padding:20px;border-right:1px solid rgba(255,255,255,0.03);backdrop-filter: blur(6px)}
+.sidebar{width:300px;background:var(--panel);padding:20px;border-right:1px solid rgba(255,255,255,0.03);backdrop-filter: blur(6px);display:flex;flex-direction:column;overflow:auto}
 .brand{font-size:20px;font-weight:700;margin-bottom:18px;color:var(--accent)}
 #nav{display:flex;flex-direction:column;gap:6px}
 .nav-section{background:transparent;border-radius:8px;padding:8px}
@@ -76,6 +76,9 @@ body{margin:0;font-family:Inter,Segoe UI,Arial,sans-serif;background:linear-grad
 .drop.over{background:rgba(255,255,255,0.02)}
 .vis-gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-top:12px}
 .vis-card{background:linear-gradient(180deg,rgba(255,255,255,0.01),rgba(255,255,255,0.00));border-radius:8px;padding:8px;display:flex;flex-direction:column;gap:8px;align-items:center}
+.med-controls{display:flex;gap:8px;align-items:center;margin-top:8px}
+.timer-input{width:72px;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:var(--text)}
+.timer-display{font-size:28px;font-weight:700;color:var(--accent);margin-top:12px}
 .vis-card img{max-width:100%;height:140px;object-fit:cover;border-radius:6px;cursor:pointer}
 .vis-card{position:relative}
 .vis-card .btn{margin-top:6px}
