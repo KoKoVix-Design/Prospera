@@ -80,6 +80,13 @@ body{margin:0;font-family:Inter,Segoe UI,Arial,sans-serif;background:linear-grad
 .group-header{padding:6px 10px;color:var(--muted);font-weight:700;font-size:13px;border-top:1px solid rgba(255,255,255,0.02);margin-top:8px}
 .section-icon{margin:0 8px;font-size:18px}
 
+/* Pyramid dashboard */
+.pyramid{margin-top:12px}
+.pyramid-wrap{display:flex;flex-direction:column-reverse;align-items:stretch;gap:6px}
+.pyramid-layer{border-radius:8px;padding:6px 8px;color:white;border:none;cursor:pointer;font-weight:700;box-shadow:0 6px 14px rgba(2,6,23,0.5)}
+.pyramid-layer.active{outline:3px solid rgba(255,255,255,0.08);transform:translateY(-2px)}
+.pyramid-layer:hover{opacity:0.95}
+
 /* Visualization styles */
 .uploader{display:flex;flex-direction:column;gap:8px}
 .drop{border:2px dashed rgba(255,255,255,0.04);padding:20px;border-radius:10px;text-align:center;color:var(--muted);cursor:pointer}

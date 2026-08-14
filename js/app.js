@@ -1,30 +1,40 @@
 const DEFAULT = [
-  {id:'morning', title:'Morning Rituals', category:'Core', icon:'🌅', subs:['Gratitude','Meditation','Affirmations','Journal']},
-  {id:'plan', title:'Plan My Day', category:'Core', icon:'🗓️', subs:['One Thing','To Do List','Time Blocks']},
-  {id:'night', title:'Night Rituals', category:'Core', icon:'🌙', subs:['Reflection','Sleep Notes']},
+  {id:'morning', title:'Morning Rituals', category:'Core', pillar:'Discipline', icon:'🌅', subs:['Gratitude','Meditation','Affirmations','Journal']},
+  {id:'plan', title:'Plan My Day', category:'Core', pillar:'Discipline', icon:'🗓️', subs:['One Thing','To Do List','Time Blocks']},
+  {id:'night', title:'Night Rituals', category:'Core', pillar:'Discipline', icon:'🌙', subs:['Reflection','Sleep Notes']},
 
-  {id:'health', title:'Health', category:'Health', icon:'❤️', subs:['RHR','VO2Max','Weight','Latest Health Report','Daily Exercises','Nutrition']},
-  {id:'habits', title:'Habits', category:'Habits & Mood', icon:'🔁', subs:['Tracker','Streaks']},
-  {id:'mood', title:'Mood', category:'Habits & Mood', icon:'🙂', subs:['Daily Mood','Mood Notes']},
+  {id:'health', title:'Health', category:'Health', pillar:'Health', icon:'❤️', subs:['RHR','VO2Max','Weight','Latest Health Report','Daily Exercises','Nutrition']},
+  {id:'habits', title:'Habits', category:'Habits & Mood', pillar:'Discipline', icon:'🔁', subs:['Tracker','Streaks']},
+  {id:'mood', title:'Mood', category:'Habits & Mood', pillar:'Mind & Emotions', icon:'🙂', subs:['Daily Mood','Mood Notes']},
 
-  {id:'goals', title:'Goals', category:'Goals & Reviews', icon:'🎯', subs:['Weekly','Monthly','Yearly']},
-  {id:'reflection', title:'Reflection', category:'Goals & Reviews', icon:'🔍', subs:['Daily','Weekly','Monthly','Action Items']},
+  {id:'goals', title:'Goals', category:'Goals & Reviews', pillar:'Discipline', icon:'🎯', subs:['Weekly','Monthly','Yearly']},
+  {id:'reflection', title:'Reflection', category:'Goals & Reviews', pillar:'Mind & Emotions', icon:'🔍', subs:['Daily','Weekly','Monthly','Action Items']},
 
-  {id:'projects', title:'Projects', category:'Work & Learning', icon:'💼', subs:['Active Projects','Backlog']},
-  {id:'research', title:'Research', category:'Work & Learning', icon:'🔬', subs:['Notes','Papers','Strategy Journal']},
-  {id:'learning', title:'Learning', category:'Work & Learning', icon:'📚', subs:['Courses','Reading List','Flashcards']},
+  {id:'projects', title:'Projects', category:'Work & Learning', pillar:'Career (Trading)', icon:'💼', subs:['Active Projects','Backlog']},
+  {id:'research', title:'Research', category:'Work & Learning', pillar:'Career (Trading)', icon:'🔬', subs:['Notes','Papers','Strategy Journal']},
+  {id:'learning', title:'Learning', category:'Work & Learning', pillar:'Career (Trading)', icon:'📚', subs:['Courses','Reading List','Flashcards']},
 
-  {id:'finance', title:'Finance', category:'Finance & Trading', icon:'💳', subs:['Expenses','Budgets','Subscriptions']},
-  {id:'trading', title:'Trading', category:'Finance & Trading', icon:'📈', subs:['Strategies','Trade Journal','Watchlist','Backtests']},
+  {id:'finance', title:'Finance', category:'Finance & Trading', pillar:'Finance & Investments', icon:'💳', subs:['Expenses','Budgets','Subscriptions']},
+  {id:'trading', title:'Trading', category:'Finance & Trading', pillar:'Career (Trading)', icon:'📈', subs:['Strategies','Trade Journal','Watchlist','Backtests']},
 
-  {id:'content', title:'Content Calendar', category:'Content & Social', icon:'✍️', subs:['Ideas','Schedule','Published']},
-  {id:'social', title:'Social', category:'Content & Social', icon:'📊', subs:['Analytics','Subscriptions','Screen Time']},
+  {id:'content', title:'Content Calendar', category:'Content & Social', pillar:'Contribution', icon:'✍️', subs:['Ideas','Schedule','Published']},
+  {id:'social', title:'Social', category:'Content & Social', pillar:'Relationships & Network', icon:'📊', subs:['Analytics','Subscriptions','Screen Time']},
 
-  {id:'notes', title:'Notes', category:'Personal Knowledge', icon:'🗒️', subs:['Quick Notes','Templates','Archive']},
-  {id:'resources', title:'Resources', category:'Personal Knowledge', icon:'🔗', subs:['Links','Tools','References']},
+  {id:'notes', title:'Notes', category:'Personal Knowledge', pillar:'Mind & Emotions', icon:'🗒️', subs:['Quick Notes','Templates','Archive']},
+  {id:'resources', title:'Resources', category:'Personal Knowledge', pillar:'Mind & Emotions', icon:'🔗', subs:['Links','Tools','References']},
 
-  {id:'visualization', title:'Visualization', category:'Visualization & Media', icon:'🖼️', subs:['Gallery','Vision Board']},
-  {id:'productivity', title:'Productivity Methods', category:'Productivity Toolbox', icon:'🧰', subs:['Pomodoro','Deep Work','Eisenhower Matrix','Time Blocking']}
+  {id:'visualization', title:'Visualization', category:'Visualization & Media', pillar:'Mind & Emotions', icon:'🖼️', subs:['Gallery','Vision Board']},
+  {id:'productivity', title:'Productivity Methods', category:'Productivity Toolbox', pillar:'Discipline', icon:'🧰', subs:['Pomodoro','Deep Work','Eisenhower Matrix','Time Blocking']}
+];
+
+const PILLARS = [
+  {id:'health', title:'Health', tagline:'Health = Wealth', color:'#e25656', icon:'❤️'},
+  {id:'mind', title:'Mind & Emotions', tagline:'Mind = Self Control', color:'#7d5fff', icon:'🧠'},
+  {id:'relationships', title:'Relationships & Network', tagline:'Relationships = Growth Network', color:'#ffaf3e', icon:'🤝'},
+  {id:'discipline', title:'Discipline', tagline:'Discipline = Success System', color:'#22c1c3', icon:'⏱️'},
+  {id:'career', title:'Career (Trading)', tagline:'Trading = Mastery', color:'#2ecc71', icon:'📈'},
+  {id:'finance', title:'Finance & Investments', tagline:'Finance = Freedom', color:'#f39c12', icon:'💰'},
+  {id:'contribution', title:'Contribution', tagline:'Contribution = Legacy', color:'#9b59b6', icon:'🌱'}
 ];
 
 const QUOTES = [
@@ -63,6 +73,7 @@ function normalizeSections(arr){
       (s.subs||[]).forEach(sub=>{ if(!existing.subs.includes(sub)) existing.subs.push(sub); });
       if(s.category) existing.category = existing.category || s.category;
       if(s.icon) existing.icon = existing.icon || s.icon;
+      if(s.pillar) existing.pillar = existing.pillar || s.pillar;
     }
   });
   return Array.from(map.values());
@@ -73,6 +84,7 @@ function saveState(data){ localStorage.setItem(STORAGE_KEY, JSON.stringify(data)
 function el(tag, cls, txt){const e=document.createElement(tag); if(cls) e.className=cls; if(txt!==undefined) e.textContent=txt; return e}
 
 let SECTIONS = loadAndNormalize();
+let activePillar = null;
 
 function renderSidebar(){
   const list = document.getElementById('sectionsList'); list.innerHTML='';
@@ -88,9 +100,12 @@ function renderSidebar(){
   order.forEach(catName=>{
     const items = groups.get(catName);
     if(!items || items.length===0) return;
+    // if a pillar filter is active, only show sections belonging to that pillar
+    const visible = items.filter(sec => !activePillar || (sec.pillar && sec.pillar === activePillar));
+    if(visible.length===0) return;
     const gh = el('div','group-header',catName);
     list.appendChild(gh);
-    items.forEach(sec=>{
+    visible.forEach(sec=>{
       const li = el('li','section-item'); li.dataset.id = sec.id;
       li.addEventListener('dragover',(e)=> onDragOver(e));
       li.addEventListener('dragenter',(e)=>{ li.classList.add('drag-over'); });
@@ -132,6 +147,37 @@ function renderSidebar(){
       list.appendChild(li);
     });
   });
+}
+
+function focusPillar(pillarTitle){
+  if(activePillar === pillarTitle) { activePillar = null; } else { activePillar = pillarTitle; }
+  renderSidebar();
+  renderPyramid();
+  if(activePillar){
+    const first = SECTIONS.find(s=> s.pillar === activePillar);
+    if(first && first.subs && first.subs[0]){
+      // open first subsection for quick focus
+      openSubsection(first.id, first.subs[0]);
+    }
+  }
+}
+
+function renderPyramid(){
+  const container = document.getElementById('pyramid');
+  if(!container) return;
+  container.innerHTML='';
+  // build pyramid layers bottom-up
+  const wrap = el('div','pyramid-wrap');
+  PILLARS.forEach((p, idx)=>{
+    const layer = el('button','pyramid-layer', `${p.icon} ${p.title}`);
+    layer.style.background = p.color;
+    layer.dataset.pillar = p.title;
+    layer.title = p.tagline;
+    layer.addEventListener('click', ()=> focusPillar(p.title));
+    if(activePillar === p.title) layer.classList.add('active');
+    wrap.appendChild(layer);
+  });
+  container.appendChild(wrap);
 }
 
 // Drag helpers for sections
@@ -351,6 +397,8 @@ window.addEventListener('DOMContentLoaded', ()=>{
   buildLegacyNav();
   // Quote rotation
   const qEl = document.getElementById('quote'); if(qEl){ qEl.textContent = QUOTES[Math.floor(Math.random()*QUOTES.length)]; setInterval(()=>{ qEl.textContent = QUOTES[Math.floor(Math.random()*QUOTES.length)]; }, 8000); }
+  // render interactive pyramid
+  renderPyramid();
   // Open Core category first (expand and show first subsection)
   const core = SECTIONS.find(s=>s.category==='Core');
   if(core){ core._open = true; renderSidebar(); if(core.subs && core.subs[0]) openSubsection(core.id, core.subs[0]); }
