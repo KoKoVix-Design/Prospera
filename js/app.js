@@ -3,7 +3,7 @@ const DEFAULT = [
   {id:'plan', title:'Plan My Day', category:'Core', pillar:'Discipline', icon:'🗓️', subs:['One Thing','To Do List','Time Blocks']},
   {id:'night', title:'Night Rituals', category:'Core', pillar:'Discipline', icon:'🌙', subs:['Reflection','Sleep Notes']},
 
-  {id:'health', title:'Health', category:'Health', pillar:'Health', icon:'❤️', subs:['RHR','VO2Max','Weight','Latest Health Report','Daily Exercises','Nutrition']},
+  {id:'health', title:'Health', category:'Health', pillar:'Health', icon:'❤️', subs:['RHR','VO2Max','Weight','Latest Health Report','Daily Exercises','Nutrition','Sleep','Hydration']},
   {id:'habits', title:'Habits', category:'Habits & Mood', pillar:'Discipline', icon:'🔁', subs:['Tracker','Streaks']},
   {id:'mood', title:'Mood', category:'Habits & Mood', pillar:'Mind & Emotions', icon:'🙂', subs:['Daily Mood','Mood Notes']},
 
@@ -234,6 +234,8 @@ function cleanSidebarDom(){
 
 // Normalize in-memory sections and persist to localStorage if changes found
 function normalizeAndPersist(){
+  // attempt to migrate loose sections (e.g., Sleep, Hydration) into Health
+  try{ migrateSections(); }catch(e){ console.warn('migrateSections failed', e); }
   try{
     const raw = loadState();
     const norm = normalizeSections(raw.concat([]));
@@ -247,6 +249,23 @@ function normalizeAndPersist(){
       SECTIONS = norm; // ensure in-memory matches storage
     }
   }catch(e){ console.warn('normalizeAndPersist failed', e); }
+}
+
+// Move standalone Sleep/Hydration sections into the Health section and merge subs
+function migrateSections(){
+  const raw = loadState();
+  let changed = false;
+  // find or create health section in raw
+  let health = raw.find(s=> (s.title||'').toString().trim().toLowerCase()==='health');
+  if(!health){ health = {id:uid('s_'), title:'Health', category:'Health', pillar:'Health', icon:'❤️', subs:[]}; raw.unshift(health); changed = true; }
+  const moveTitles = ['sleep','hydration'];
+  for(let i = raw.length-1;i>=0;i--){ const s = raw[i]; if(!s || !s.title) continue; const t = s.title.toString().trim().toLowerCase(); if(moveTitles.includes(t) || (s.category && s.category.toLowerCase()==='health' && (t==='sleep' || t==='hydration'))){
+      // move subsections or the title itself into health.subs
+      if(Array.isArray(s.subs) && s.subs.length){ s.subs.forEach(sub=>{ if(!health.subs.includes(sub)) health.subs.push(sub); }); }
+      else { if(!health.subs.includes(s.title)) health.subs.push(s.title); }
+      raw.splice(i,1); changed = true;
+    } }
+  if(changed){ saveState(normalizeSections(raw)); SECTIONS = normalizeSections(raw); }
 }
 
 // Drag helpers for sections
