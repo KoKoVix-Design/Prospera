@@ -84,6 +84,12 @@ function saveState(data){ localStorage.setItem(STORAGE_KEY, JSON.stringify(data)
 function el(tag, cls, txt){const e=document.createElement(tag); if(cls) e.className=cls; if(txt!==undefined) e.textContent=txt; return e}
 
 let SECTIONS = loadAndNormalize();
+// Safety fallback: if storage was corrupted or empty, restore DEFAULT sections
+if(!SECTIONS || !Array.isArray(SECTIONS) || SECTIONS.length===0){
+  SECTIONS = JSON.parse(JSON.stringify(DEFAULT));
+  saveState(SECTIONS);
+  console.info('kokovix: restored default sections due to empty state');
+}
 let activePillar = null;
 
 function renderSidebar(){
