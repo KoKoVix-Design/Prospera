@@ -6,7 +6,16 @@ const DEFAULT = [
   {id:'goals', title:'Goals', subs:['Weekly','Monthly','Yearly']},
   {id:'research', title:'Research', subs:['Daily','Weekly','Monthly']},
   {id:'books', title:'Books', subs:['To Read','Completed']},
-  {id:'visualization', title:'Visualization', subs:['Gallery','Vision Board']}
+  {id:'visualization', title:'Visualization', subs:['Gallery','Vision Board']},
+  {id:'productivity', title:'Productivity Methods', subs:['Deep Work','Pomodoro','Eisenhower Matrix','Time Blocking','Two-Minute Rule']}
+];
+
+const QUOTES = [
+  "Clarity precedes mastery — decide, then do.",
+  "You do not rise to the level of your goals. You fall to the level of your systems.",
+  "Protect your attention; it is your most valuable asset.",
+  "Small daily improvements lead to stunning results.",
+  "Ship imperfectly, learn quickly, iterate boldly."
 ];
 
 const STORAGE_KEY = 'kokovix.sections.v1';
@@ -29,6 +38,12 @@ function renderSidebar(){
   const list = document.getElementById('sectionsList'); list.innerHTML='';
   SECTIONS.forEach(sec=>{
     const li = el('li','section-item');
+    li.draggable = true; li.dataset.id = sec.id;
+    li.addEventListener('dragstart',(e)=> onSectionDragStart(e, sec.id));
+    li.addEventListener('dragover',(e)=> onDragOver(e));
+    li.addEventListener('dragenter',(e)=>{ li.classList.add('drag-over'); });
+    li.addEventListener('dragleave',(e)=>{ li.classList.remove('drag-over'); });
+    li.addEventListener('drop',(e)=> onSectionDrop(e, sec.id));
 
     const header = el('div','section-header');
     const title = el('span','section-title',sec.title);
@@ -53,7 +68,12 @@ function renderSidebar(){
 
     const sublist = el('ul','sub-list'); sublist.style.display = sec._open ? 'block' : 'none';
     sec.subs.forEach((s, idx)=>{
-      const si = el('li','sub-item');
+      const si = el('li','sub-item'); si.draggable = true; si.dataset.sid = sec.id; si.dataset.subidx = idx;
+      si.addEventListener('dragstart',(e)=> onSubDragStart(e, sec.id, idx));
+      si.addEventListener('dragover',(e)=> onDragOver(e));
+      si.addEventListener('dragenter',(e)=>{ si.classList.add('drag-over'); });
+      si.addEventListener('dragleave',(e)=>{ si.classList.remove('drag-over'); });
+      si.addEventListener('drop',(e)=> onSubDrop(e, sec.id, idx));
       const sn = el('span','sub-name', s);
       sn.addEventListener('click', ()=> openSubsection(sec.id, s));
       sn.addEventListener('dblclick', ()=>{ // inline edit
@@ -69,6 +89,22 @@ function renderSidebar(){
     list.appendChild(li);
   });
 }
+
+// Drag helpers for sections
+let dragSectionId = null;
+function onSectionDragStart(e, id){ dragSectionId = id; e.dataTransfer.effectAllowed = 'move'; }
+function onDragOver(e){ e.preventDefault(); e.dataTransfer.dropEffect = 'move'; }
+function onSectionDrop(e, targetId){ e.preventDefault(); if(!dragSectionId || dragSectionId===targetId) return; const fromIdx = SECTIONS.findIndex(s=>s.id===dragSectionId); const toIdx = SECTIONS.findIndex(s=>s.id===targetId); if(fromIdx<0||toIdx<0) return; const [item] = SECTIONS.splice(fromIdx,1); SECTIONS.splice(toIdx,0,item); saveState(SECTIONS); renderSidebar(); dragSectionId = null; }
+
+// Drag helpers for subsections
+let dragSub = null; // {sectionId, index}
+function onSubDragStart(e, sectionId, idx){ dragSub = {sectionId, idx}; e.dataTransfer.effectAllowed='move'; }
+function onSubDrop(e, targetSectionId, targetIdx){ e.preventDefault(); if(!dragSub) return; const fromSec = SECTIONS.find(s=>s.id===dragSub.sectionId); const toSec = SECTIONS.find(s=>s.id===targetSectionId); if(!fromSec||!toSec) return; const [item] = fromSec.subs.splice(dragSub.idx,1); if(targetSectionId===dragSub.sectionId){ // same section
+  fromSec.subs.splice(targetIdx,0,item);
+} else {
+  toSec.subs.splice(targetIdx,0,item);
+}
+saveState(SECTIONS); renderSidebar(); dragSub = null; }
 
 function toggleExpand(sectionId){
   SECTIONS = SECTIONS.map(s=>{ if(s.id===sectionId) s._open = !s._open; else s._open = s._open || false; return s });
@@ -216,6 +252,8 @@ window.addEventListener('DOMContentLoaded', ()=>{
   });
   // Build legacy nav (optional)
   buildLegacyNav();
+  // Quote rotation
+  const qEl = document.getElementById('quote'); if(qEl){ qEl.textContent = QUOTES[Math.floor(Math.random()*QUOTES.length)]; setInterval(()=>{ qEl.textContent = QUOTES[Math.floor(Math.random()*QUOTES.length)]; }, 8000); }
 });
 
 // keep previous nav for compatibility with some pages
