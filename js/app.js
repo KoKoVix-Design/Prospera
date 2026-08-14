@@ -570,6 +570,19 @@ window.addEventListener('DOMContentLoaded', ()=>{
   // Open Core category first (expand and show first subsection)
   const core = SECTIONS.find(s=>s.category==='Core');
   if(core){ core._open = true; renderSidebar(); if(core.subs && core.subs[0]) openSubsection(core.id, core.subs[0]); }
+
+  // Mobile sidebar toggle
+  const toggleBtn = document.getElementById('toggleSidebarBtn');
+  if(toggleBtn){
+    const aside = document.querySelector('.sidebar');
+    // create overlay
+    let overlay = document.querySelector('.content-overlay');
+    if(!overlay){ overlay = document.createElement('div'); overlay.className='content-overlay'; document.body.appendChild(overlay); }
+    toggleBtn.addEventListener('click', ()=>{ aside.classList.toggle('open'); overlay.classList.toggle('show'); });
+    overlay.addEventListener('click', ()=>{ aside.classList.remove('open'); overlay.classList.remove('show'); });
+    // close sidebar when clicking a section item (mobile)
+    document.getElementById('sectionsList').addEventListener('click', ()=>{ if(window.matchMedia && window.matchMedia('(max-width:900px)').matches){ aside.classList.remove('open'); overlay.classList.remove('show'); } });
+  }
 });
 
 // Export current workspace (sections + localStorage keys + visuals)
