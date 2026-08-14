@@ -1,13 +1,12 @@
 const DEFAULT = [
-  {id:'health', title:'Health', subs:['Reading for RHR','VO2Max','Weight','Latest Health Report','Daily Exercises']},
+  {id:'health', title:'Health', subs:['RHR','VO2Max','Weight','Latest Health Report','Daily Exercises']},
   {id:'morning', title:'Morning Rituals', subs:['Meditation','Affirmations','Journal']},
   {id:'plan', title:'Plan My Day', subs:['To Do List','One Thing for Day']},
-  {id:'night', title:'Night Rituals', subs:['Reflection','Meditation']},
+  {id:'reflection', title:'Reflection', subs:['Daily','Weekly','Monthly']},
   {id:'goals', title:'Goals', subs:['Weekly','Monthly','Yearly']},
-  {id:'weekly', title:'Weekly Review', subs:['What went well','What to improve','Action Items','Next To Do']},
-  {id:'monthly', title:'Monthly Review', subs:['What went well','What to improve','Action Items','Next To Do']},
   {id:'research', title:'Research', subs:['Daily','Weekly','Monthly']},
-  {id:'books', title:'Books', subs:['To Read','Completed']}
+  {id:'books', title:'Books', subs:['To Read','Completed']},
+  {id:'visualization', title:'Visualization', subs:['Gallery','Vision Board']}
 ];
 
 const STORAGE_KEY = 'kokovix.sections.v1';
@@ -30,16 +29,54 @@ function renderSidebar(){
   const list = document.getElementById('sectionsList'); list.innerHTML='';
   SECTIONS.forEach(sec=>{
     const li = el('li','section-item');
-    const a = el('a','section-link',sec.title);
-    a.href='#'; a.addEventListener('click',(ev)=>{ev.preventDefault(); openSection(sec.id);});
-    const actions = el('div','sec-actions');
-    const addSub = el('button','small','+sub'); addSub.title='Add subsection'; addSub.addEventListener('click',()=> addSubsectionPrompt(sec.id));
-    const edit = el('button','small','edit'); edit.addEventListener('click',()=> renameSectionPrompt(sec.id));
-    const del = el('button','small','del'); del.addEventListener('click',()=> deleteSection(sec.id));
-    actions.appendChild(addSub); actions.appendChild(edit); actions.appendChild(del);
-    li.appendChild(a); li.appendChild(actions);
+
+    const header = el('div','section-header');
+    const title = el('span','section-title',sec.title);
+    title.title = 'Click to open section';
+    title.addEventListener('click', ()=> toggleExpand(sec.id));
+
+    // inline edit on double-click
+    title.addEventListener('dblclick', ()=>{
+      const inp = el('input','section-edit'); inp.value = sec.title; header.replaceChild(inp, title); inp.focus();
+      inp.addEventListener('blur', ()=>{ if(inp.value.trim()) sec.title = inp.value.trim(); saveState(SECTIONS); renderSidebar(); });
+      inp.addEventListener('keydown',(e)=>{ if(e.key==='Enter'){ inp.blur(); } });
+    });
+
+    const chevron = el('button','chev','▸'); chevron.addEventListener('click', ()=> toggleExpand(sec.id));
+    const right = el('div','sec-right');
+    const addSub = el('button','icon','＋'); addSub.title='Add subsection'; addSub.addEventListener('click', (e)=>{ e.stopPropagation(); addSubInline(sec.id); });
+    const del = el('button','icon','✕'); del.title='Delete section'; del.addEventListener('click',(e)=>{ e.stopPropagation(); deleteSection(sec.id); });
+    right.appendChild(addSub); right.appendChild(del);
+
+    header.appendChild(chevron); header.appendChild(title); header.appendChild(right);
+    li.appendChild(header);
+
+    const sublist = el('ul','sub-list'); sublist.style.display = sec._open ? 'block' : 'none';
+    sec.subs.forEach((s, idx)=>{
+      const si = el('li','sub-item');
+      const sn = el('span','sub-name', s);
+      sn.addEventListener('click', ()=> openSubsection(sec.id, s));
+      sn.addEventListener('dblclick', ()=>{ // inline edit
+        const inp = el('input','sub-edit'); inp.value = s; si.replaceChild(inp, sn); inp.focus();
+        inp.addEventListener('blur', ()=>{ if(inp.value.trim()){ sec.subs[idx]=inp.value.trim(); saveState(SECTIONS); renderSidebar(); openSubsection(sec.id, sec.subs[idx]); } else renderSidebar(); });
+        inp.addEventListener('keydown',(e)=>{ if(e.key==='Enter') inp.blur(); });
+      });
+      const sdel = el('button','icon small','−'); sdel.title='Delete subsection'; sdel.addEventListener('click',(e)=>{ e.stopPropagation(); if(confirm('Delete subsection?')){ sec.subs.splice(idx,1); saveState(SECTIONS); renderSidebar(); }});
+      si.appendChild(sn); si.appendChild(sdel); sublist.appendChild(si);
+    });
+
+    li.appendChild(sublist);
     list.appendChild(li);
   });
+}
+
+function toggleExpand(sectionId){
+  SECTIONS = SECTIONS.map(s=>{ if(s.id===sectionId) s._open = !s._open; else s._open = s._open || false; return s });
+  renderSidebar();
+}
+
+function addSubInline(sectionId){
+  const sec = SECTIONS.find(s=>s.id===sectionId); if(!sec) return; const title = prompt('New subsection title'); if(title){ sec.subs.push(title); saveState(SECTIONS); renderSidebar(); toggleExpand(sectionId); openSubsection(sectionId, title); }
 }
 
 function addSection(title){
@@ -60,90 +97,115 @@ function addSubsectionPrompt(sectionId){
   sec.subs.push(name); saveState(SECTIONS); renderSidebar(); openSection(sectionId);
 }
 
-function openSection(sectionId){
-  const sec = SECTIONS.find(s=>s.id===sectionId); if(!sec) return;
-  const title = document.getElementById('page-title'); title.textContent = sec.title;
+function openSubsection(sectionId, sub){
+  const sec = SECTIONS.find(s=>s.id===sectionId); if(!sec) return; if(!sec.subs.includes(sub)) return;
+  const title = document.getElementById('page-title'); title.textContent = `${sec.title} — ${sub}`;
   const content = document.getElementById('content'); content.innerHTML = '';
-  const bc = el('div','breadcrumb',`Home / ${sec.title}`); content.appendChild(bc);
+  const bc = el('div','breadcrumb',`Home / ${sec.title} / ${sub}`); content.appendChild(bc);
 
-  // For each subsection render subsection block
-  sec.subs.forEach(sub => {
-    const container = el('div','card');
-    const h = el('h2',null,sub);
-    container.appendChild(h);
+  const container = el('div','card single-sub');
+  const h = el('h2',null,sub); container.appendChild(h);
 
-    const key = `kokovix.entry.${sec.id}.${sub}`;
-    const area = el('textarea','sub-input',''); area.placeholder='Write notes, details, or status for this subsection.';
-    area.style.width='100%'; area.style.height='120px';
-    const saved = localStorage.getItem(key);
-    if(saved) area.value = saved;
-    container.appendChild(area);
+  const key = `kokovix.entry.${sec.id}.${sub}`;
+  const area = el('textarea','sub-input',''); area.placeholder='Write notes, details, or status for this subsection.';
+  area.style.width='100%'; area.style.height='160px';
+  const saved = localStorage.getItem(key);
+  if(saved) area.value = saved;
+  container.appendChild(area);
 
-    // Special fields for Health / Latest Health Report
-    if(sec.title.toLowerCase().includes('health')){
-      const fldWrap = el('div','health-fields');
-      const rhr = el('input','',''); rhr.placeholder='RHR'; rhr.value = localStorage.getItem(key + '.rhr')||'';
-      const vo2 = el('input','',''); vo2.placeholder='VO2Max'; vo2.value = localStorage.getItem(key + '.vo2')||'';
-      const weight = el('input','',''); weight.placeholder='Weight'; weight.value = localStorage.getItem(key + '.weight')||'';
-      const file = el('input','',''); file.type='file'; file.addEventListener('change',(e)=>{
-        const f = e.target.files[0]; if(!f) return; const reader = new FileReader(); reader.onload = () => { localStorage.setItem(key+'.file', reader.result); alert('Health report saved locally'); }; reader.readAsDataURL(f);
-      });
-      fldWrap.appendChild(rhr); fldWrap.appendChild(vo2); fldWrap.appendChild(weight); fldWrap.appendChild(file);
-      container.appendChild(fldWrap);
+  if(sec.id==='health' || sec.title.toLowerCase().includes('health')){
+    const fldWrap = el('div','health-fields');
+    const rhr = el('input','health-field',''); rhr.placeholder='RHR'; rhr.value = localStorage.getItem(key + '.rhr')||'';
+    const vo2 = el('input','health-field',''); vo2.placeholder='VO2Max'; vo2.value = localStorage.getItem(key + '.vo2')||'';
+    const weight = el('input','health-field',''); weight.placeholder='Weight'; weight.value = localStorage.getItem(key + '.weight')||'';
+    const file = el('input','health-file',''); file.type='file'; file.addEventListener('change',(e)=>{ const f = e.target.files[0]; if(!f) return; const reader = new FileReader(); reader.onload = () => { localStorage.setItem(key+'.file', reader.result); alert('Health report saved locally'); }; reader.readAsDataURL(f); });
+    fldWrap.appendChild(rhr); fldWrap.appendChild(vo2); fldWrap.appendChild(weight); fldWrap.appendChild(file);
+    container.appendChild(fldWrap);
+    rhr.addEventListener('input', ()=> localStorage.setItem(key+'.rhr', rhr.value));
+    vo2.addEventListener('input', ()=> localStorage.setItem(key+'.vo2', vo2.value));
+    weight.addEventListener('input', ()=> localStorage.setItem(key+'.weight', weight.value));
+  }
 
-      rhr.addEventListener('input', ()=> localStorage.setItem(key+'.rhr', rhr.value));
-      vo2.addEventListener('input', ()=> localStorage.setItem(key+'.vo2', vo2.value));
-      weight.addEventListener('input', ()=> localStorage.setItem(key+'.weight', weight.value));
-    }
+  const actions = el('div','action-row');
+  const saveBtn = el('button','btn','Save');
+  const addEntryBtn = el('button','btn small','Add history');
+  const clearBtn = el('button','btn small','Clear');
+  actions.appendChild(saveBtn); actions.appendChild(addEntryBtn); actions.appendChild(clearBtn);
+  container.appendChild(actions);
 
-    const actions = el('div','action-row');
-    const saveBtn = el('button','btn','Save');
-    const addEntryBtn = el('button','btn small','Add history');
-    const clearBtn = el('button','btn small','Clear');
-    actions.appendChild(saveBtn); actions.appendChild(addEntryBtn); actions.appendChild(clearBtn);
-    container.appendChild(actions);
+  const histWrap = el('div','history'); const htitle = el('h4',null,'History'); const hlist = el('ul','history-list'); histWrap.appendChild(htitle); histWrap.appendChild(hlist); container.appendChild(histWrap);
 
-    // History list
-    const histWrap = el('div','history'); const htitle = el('h4',null,'History'); const hlist = el('ul','history-list'); histWrap.appendChild(htitle); histWrap.appendChild(hlist); container.appendChild(histWrap);
+  function loadHistory(){ const raw = localStorage.getItem(key + '.history'); const arr = raw ? JSON.parse(raw) : []; hlist.innerHTML=''; arr.slice().reverse().forEach((item, idx)=>{ const li = el('li','history-item', `${new Date(item.t).toLocaleString()} — ${item.status || 'saved'} ${item.comments? '- '+item.comments: ''}`); const edit = el('button','icon small','✎'); edit.title='Edit comments'; edit.addEventListener('click', ()=>{ const newC = prompt('Edit comments', item.comments||''); if(newC!==null){ item.comments=newC; arr[arr.length-1-idx]=item; saveHistory(arr); loadHistory(); } }); const del = el('button','icon small','✕'); del.title='Delete entry'; del.addEventListener('click', ()=>{ if(confirm('Delete this history entry?')){ arr.splice(arr.length-1-idx,1); saveHistory(arr); loadHistory(); }}); li.appendChild(edit); li.appendChild(del); hlist.appendChild(li); }); }
+  function saveHistory(arr){ localStorage.setItem(key + '.history', JSON.stringify(arr)); }
 
-    function loadHistory(){
-      const raw = localStorage.getItem(key + '.history');
-      const arr = raw ? JSON.parse(raw) : [];
-      hlist.innerHTML='';
-      arr.slice().reverse().forEach((item, idx)=>{
-        const li = el('li','history-item', `${new Date(item.t).toLocaleString()} — ${item.status || 'saved'} ${item.comments? '- '+item.comments: ''}`);
-        const edit = el('button','small','edit'); edit.addEventListener('click', ()=>{
-          const newC = prompt('Edit comments', item.comments||''); if(newC!==null){ item.comments=newC; saveHistory(arr); loadHistory(); }
-        });
-        const del = el('button','small','del'); del.addEventListener('click', ()=>{ if(confirm('Delete this history entry?')){ arr.splice(arr.length-1-idx,1); saveHistory(arr); loadHistory(); }});
-        li.appendChild(edit); li.appendChild(del);
-        hlist.appendChild(li);
-      });
-    }
+  saveBtn.addEventListener('click', ()=>{ localStorage.setItem(key, area.value); const raw = localStorage.getItem(key + '.history'); const arr = raw?JSON.parse(raw):[]; arr.push({t:Date.now(), status:'saved', comments: ''}); saveHistory(arr); loadHistory(); });
+  addEntryBtn.addEventListener('click', ()=>{ const status = prompt('Status (e.g., done, in-progress)'); if(status===null) return; const comments = prompt('Optional comments')||''; const raw = localStorage.getItem(key + '.history'); const arr = raw?JSON.parse(raw):[]; arr.push({t:Date.now(), status, comments}); saveHistory(arr); loadHistory(); });
+  clearBtn.addEventListener('click', ()=>{ if(confirm('Clear content for this subsection?')){ area.value=''; localStorage.removeItem(key); } });
 
-    function saveHistory(arr){ localStorage.setItem(key + '.history', JSON.stringify(arr)); }
+  loadHistory();
+  content.appendChild(container);
+}
 
-    saveBtn.addEventListener('click', ()=>{
-      localStorage.setItem(key, area.value);
-      // push history entry
-      const raw = localStorage.getItem(key + '.history'); const arr = raw?JSON.parse(raw):[];
-      arr.push({t:Date.now(), status:'saved', comments: ''}); saveHistory(arr); loadHistory();
-      alert('Saved');
+// Visualization gallery handler
+function openVisualization(sectionId, sub){
+  const keyRoot = `kokovix.entry.${sectionId}.visual`;
+  const content = document.getElementById('content'); content.innerHTML='';
+  const bc = el('div','breadcrumb',`Home / Visualization / ${sub}`); content.appendChild(bc);
+
+  const wrap = el('div','card');
+  const h = el('h2',null, sub === 'Gallery' ? 'Gallery' : 'Vision Board'); wrap.appendChild(h);
+
+  // uploader
+  const uploader = el('div','uploader');
+  const file = el('input'); file.type='file'; file.accept='image/*'; file.multiple=true;
+  const drop = el('div','drop','Drag & drop images here or click to upload');
+  drop.addEventListener('click', ()=> file.click());
+  drop.addEventListener('dragover', (e)=>{ e.preventDefault(); drop.classList.add('over'); });
+  drop.addEventListener('dragleave', ()=> drop.classList.remove('over'));
+  drop.addEventListener('drop', (e)=>{ e.preventDefault(); drop.classList.remove('over'); handleFiles(e.dataTransfer.files); });
+  file.addEventListener('change', (e)=> handleFiles(e.target.files));
+  uploader.appendChild(drop); uploader.appendChild(file); wrap.appendChild(uploader);
+
+  const gallery = el('div','vis-gallery'); wrap.appendChild(gallery);
+
+  function loadImages(){
+    const raw = localStorage.getItem(keyRoot + '.images'); const arr = raw?JSON.parse(raw):[];
+    gallery.innerHTML='';
+    arr.slice().reverse().forEach(img=>{
+      const card = el('div','vis-card'); const timg = el('img'); timg.src = img.data; timg.alt = img.caption||''; card.appendChild(timg);
+      const meta = el('div','vis-meta', img.caption||'');
+      const del = el('button','icon small','✕'); del.title='Delete'; del.addEventListener('click', ()=>{ if(confirm('Delete image?')){ const i = arr.findIndex(x=>x.id===img.id); if(i>-1){ arr.splice(i,1); localStorage.setItem(keyRoot + '.images', JSON.stringify(arr)); loadImages(); } }});
+      const feat = el('button','btn small','Set featured'); feat.addEventListener('click', ()=>{ localStorage.setItem(keyRoot + '.featured', img.id); alert('Set as featured visualization'); });
+      card.appendChild(meta); card.appendChild(feat); card.appendChild(del);
+      timg.addEventListener('click', ()=> openLightbox(img));
+      gallery.appendChild(card);
     });
+  }
 
-    addEntryBtn.addEventListener('click', ()=>{
-      const status = prompt('Status (e.g., done, in-progress)'); if(status===null) return;
-      const comments = prompt('Optional comments')||'';
-      const raw = localStorage.getItem(key + '.history'); const arr = raw?JSON.parse(raw):[];
-      arr.push({t:Date.now(), status, comments}); saveHistory(arr); loadHistory();
+  function handleFiles(files){
+    const raw = localStorage.getItem(keyRoot + '.images'); const arr = raw?JSON.parse(raw):[];
+    Array.from(files).forEach(f=>{
+      const reader = new FileReader(); reader.onload = ()=>{ arr.push({id: uid('img_'), data: reader.result, caption: f.name, t:Date.now()}); localStorage.setItem(keyRoot + '.images', JSON.stringify(arr)); loadImages(); };
+      reader.readAsDataURL(f);
     });
+  }
 
-    clearBtn.addEventListener('click', ()=>{ if(confirm('Clear content for this subsection?')){ area.value=''; localStorage.removeItem(key); } });
+  function openLightbox(img){
+    const modal = el('div','lightbox'); const imgEl = el('img'); imgEl.src = img.data; modal.appendChild(imgEl);
+    const close = el('button','icon close','✕'); close.addEventListener('click', ()=> modal.remove()); modal.appendChild(close);
+    document.body.appendChild(modal);
+  }
 
-    container.querySelectorAll('.history .history-list');
-    loadHistory();
-    content.appendChild(container);
-  });
+  loadImages();
+  content.appendChild(wrap);
+}
+
+// Hook openSubsection to visualization
+const oldOpen = openSubsection;
+openSubsection = function(sectionId, sub){
+  const sec = SECTIONS.find(s=>s.id===sectionId);
+  if(sec && sec.id==='visualization') return openVisualization(sectionId, sub);
+  return oldOpen(sectionId, sub);
 }
 
 // initial UI wiring
