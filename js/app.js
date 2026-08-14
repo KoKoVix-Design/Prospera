@@ -113,7 +113,7 @@ function renderSidebar(){
       const li = el('li','section-item'); li.dataset.id = sec.id;
       li.addEventListener('dragover',(e)=> onDragOver(e)); li.addEventListener('dragenter',(e)=> li.classList.add('drag-over')); li.addEventListener('dragleave',(e)=> li.classList.remove('drag-over')); li.addEventListener('drop',(e)=> onSectionDrop(e, sec.id));
       const header = el('div','section-header');
-      const handle = el('button','drag-handle','≡'); handle.title='Drag to reorder'; header.appendChild(handle); handle.addEventListener('mousedown',(e)=>e.preventDefault()); handle.addEventListener('pointerdown', ()=>{ li.draggable=true; }); handle.addEventListener('pointerup', ()=>{ li.draggable=false; }); handle.addEventListener('dragstart',(e)=> onSectionDragStart(e, sec.id));
+      // drag handle removed (non-functional)
       const chevron = el('button','chev','▸'); chevron.addEventListener('click', ()=> toggleExpand(sec.id));
       const iconEl = el('span','section-icon', sec.icon || '');
       const title = el('span','section-title', sec.title); title.title='Click to open section'; title.addEventListener('click', ()=> toggleExpand(sec.id));
