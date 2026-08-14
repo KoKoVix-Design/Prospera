@@ -63,14 +63,19 @@ function renderSidebar(){
   const list = document.getElementById('sectionsList'); list.innerHTML='';
   SECTIONS.forEach(sec=>{
     const li = el('li','section-item');
-    li.draggable = true; li.dataset.id = sec.id;
-    li.addEventListener('dragstart',(e)=> onSectionDragStart(e, sec.id));
+    // drag now initiated from handle for clearer UX
+    li.dataset.id = sec.id;
     li.addEventListener('dragover',(e)=> onDragOver(e));
     li.addEventListener('dragenter',(e)=>{ li.classList.add('drag-over'); });
     li.addEventListener('dragleave',(e)=>{ li.classList.remove('drag-over'); });
     li.addEventListener('drop',(e)=> onSectionDrop(e, sec.id));
-
     const header = el('div','section-header');
+    const handle = el('button','drag-handle','≡'); handle.title='Drag to reorder'; header.appendChild(handle);
+    handle.addEventListener('mousedown', (e)=> e.preventDefault());
+    handle.addEventListener('dragstart', (e)=>{});
+    handle.addEventListener('pointerdown', ()=>{ li.draggable = true; });
+    handle.addEventListener('pointerup', ()=>{ li.draggable = false; });
+    handle.addEventListener('dragstart',(e)=> onSectionDragStart(e, sec.id));
     const title = el('span','section-title',sec.title);
     title.title = 'Click to open section';
     title.addEventListener('click', ()=> toggleExpand(sec.id));
@@ -117,7 +122,7 @@ function renderSidebar(){
 
 // Drag helpers for sections
 let dragSectionId = null;
-function onSectionDragStart(e, id){ dragSectionId = id; e.dataTransfer.effectAllowed = 'move'; }
+function onSectionDragStart(e, id){ dragSectionId = id; e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', id); }
 function onDragOver(e){ e.preventDefault(); e.dataTransfer.dropEffect = 'move'; }
 function onSectionDrop(e, targetId){ e.preventDefault(); if(!dragSectionId || dragSectionId===targetId) return; const fromIdx = SECTIONS.findIndex(s=>s.id===dragSectionId); const toIdx = SECTIONS.findIndex(s=>s.id===targetId); if(fromIdx<0||toIdx<0) return; const [item] = SECTIONS.splice(fromIdx,1); SECTIONS.splice(toIdx,0,item); saveState(SECTIONS); renderSidebar(); dragSectionId = null; }
 
@@ -130,6 +135,13 @@ function onSubDrop(e, targetSectionId, targetIdx){ e.preventDefault(); if(!dragS
   toSec.subs.splice(targetIdx,0,item);
 }
 saveState(SECTIONS); renderSidebar(); dragSub = null; }
+
+// IndexedDB helper for visuals
+const IDB_NAME = 'kokovix_db'; const IDB_STORE = 'visuals';
+function idbOpen(){ return new Promise((res, rej)=>{ const r = indexedDB.open(IDB_NAME, 1); r.onupgradeneeded = ()=>{ r.result.createObjectStore(IDB_STORE, {keyPath:'id'}); }; r.onsuccess = ()=> res(r.result); r.onerror = ()=> rej(r.error); }); }
+async function idbAddImage(img){ const db = await idbOpen(); return new Promise((res, rej)=>{ const tx = db.transaction(IDB_STORE,'readwrite'); const store = tx.objectStore(IDB_STORE); const req = store.add(img); req.onsuccess = ()=> res(true); req.onerror = ()=> rej(req.error); }); }
+async function idbGetAll(){ const db = await idbOpen(); return new Promise((res, rej)=>{ const tx = db.transaction(IDB_STORE,'readonly'); const store = tx.objectStore(IDB_STORE); const req = store.getAll(); req.onsuccess = ()=> res(req.result); req.onerror = ()=> rej(req.error); }); }
+async function idbDelete(id){ const db = await idbOpen(); return new Promise((res, rej)=>{ const tx = db.transaction(IDB_STORE,'readwrite'); const store = tx.objectStore(IDB_STORE); const req = store.delete(id); req.onsuccess = ()=> res(true); req.onerror = ()=> rej(req.error); }); }
 
 function toggleExpand(sectionId){
   SECTIONS = SECTIONS.map(s=>{ if(s.id===sectionId) s._open = !s._open; else s._open = s._open || false; return s });
@@ -264,13 +276,13 @@ function openVisualization(sectionId, sub){
 
   const gallery = el('div','vis-gallery'); wrap.appendChild(gallery);
 
-  function loadImages(){
-    const raw = localStorage.getItem(keyRoot + '.images'); const arr = raw?JSON.parse(raw):[];
+  async function loadImages(){
     gallery.innerHTML='';
+    const arr = await idbGetAll();
     arr.slice().reverse().forEach(img=>{
-      const card = el('div','vis-card'); const timg = el('img'); timg.src = img.data; timg.alt = img.caption||''; card.appendChild(timg);
+      const card = el('div','vis-card'); const timg = el('img'); timg.src = URL.createObjectURL(img.blob); timg.alt = img.caption||''; card.appendChild(timg);
       const meta = el('div','vis-meta', img.caption||'');
-      const del = el('button','icon small','✕'); del.title='Delete'; del.addEventListener('click', ()=>{ if(confirm('Delete image?')){ const i = arr.findIndex(x=>x.id===img.id); if(i>-1){ arr.splice(i,1); localStorage.setItem(keyRoot + '.images', JSON.stringify(arr)); loadImages(); } }});
+      const del = el('button','icon small','✕'); del.title='Delete'; del.addEventListener('click', async ()=>{ if(confirm('Delete image?')){ await idbDelete(img.id); loadImages(); } });
       const feat = el('button','btn small','Set featured'); feat.addEventListener('click', ()=>{ localStorage.setItem(keyRoot + '.featured', img.id); alert('Set as featured visualization'); });
       card.appendChild(meta); card.appendChild(feat); card.appendChild(del);
       timg.addEventListener('click', ()=> openLightbox(img));
@@ -279,18 +291,25 @@ function openVisualization(sectionId, sub){
   }
 
   function handleFiles(files){
-    const raw = localStorage.getItem(keyRoot + '.images'); const arr = raw?JSON.parse(raw):[];
     Array.from(files).forEach(f=>{
-      const reader = new FileReader(); reader.onload = ()=>{ arr.push({id: uid('img_'), data: reader.result, caption: f.name, t:Date.now()}); localStorage.setItem(keyRoot + '.images', JSON.stringify(arr)); loadImages(); };
+      const reader = new FileReader(); reader.onload = async ()=>{
+        const blob = dataURLtoBlob(reader.result);
+        await idbAddImage({id: uid('img_'), blob, caption: f.name, t:Date.now()});
+        loadImages();
+      };
       reader.readAsDataURL(f);
     });
   }
 
   function openLightbox(img){
-    const modal = el('div','lightbox'); const imgEl = el('img'); imgEl.src = img.data; modal.appendChild(imgEl);
+    const modal = el('div','lightbox'); const imgEl = el('img');
+    if(img.blob) imgEl.src = URL.createObjectURL(img.blob); else imgEl.src = img.data || '';
+    modal.appendChild(imgEl);
     const close = el('button','icon close','✕'); close.addEventListener('click', ()=> modal.remove()); modal.appendChild(close);
     document.body.appendChild(modal);
   }
+
+  function dataURLtoBlob(dataurl){ const arr = dataurl.split(','), mime = arr[0].match(/:(.*?);/)[1], bstr = atob(arr[1]), n = bstr.length, u8arr = new Uint8Array(n); while(n--){ u8arr[n] = bstr.charCodeAt(n); } return new Blob([u8arr], {type:mime}); }
 
   loadImages();
   content.appendChild(wrap);
@@ -310,11 +329,35 @@ window.addEventListener('DOMContentLoaded', ()=>{
   document.getElementById('addSectionBtn').addEventListener('click', ()=>{
     const v = document.getElementById('newSectionTitle').value.trim(); if(!v) return alert('Enter a title'); addSection(v); document.getElementById('newSectionTitle').value='';
   });
+  // import/export wiring
+  const exportBtn = document.getElementById('exportBtn'); const importBtn = document.getElementById('importBtn'); const importFile = document.getElementById('importFile');
+  if(exportBtn){ exportBtn.addEventListener('click', exportJSON); }
+  if(importBtn && importFile){ importBtn.addEventListener('click', ()=> importFile.click()); importFile.addEventListener('change', (e)=>{ if(e.target.files.length) importJSONFile(e.target.files[0]); }); }
   // Build legacy nav (optional)
   buildLegacyNav();
   // Quote rotation
   const qEl = document.getElementById('quote'); if(qEl){ qEl.textContent = QUOTES[Math.floor(Math.random()*QUOTES.length)]; setInterval(()=>{ qEl.textContent = QUOTES[Math.floor(Math.random()*QUOTES.length)]; }, 8000); }
 });
+
+// Export current workspace (sections + localStorage keys + visuals)
+async function exportJSON(){
+  const data = {sections: SECTIONS, storage:{}, visuals:[]};
+  // include kokovix keys
+  Object.keys(localStorage).forEach(k=>{ if(k.startsWith('kokovix.')) data.storage[k]=localStorage.getItem(k); });
+  // include visuals from IDB
+  try{ const imgs = await idbGetAll(); for(const im of imgs){ let dataURL = ''; if(im.blob){ dataURL = await blobToDataURL(im.blob); } data.visuals.push({id:im.id, caption:im.caption, data: dataURL, t:im.t}); } }catch(e){console.warn('idb export failed',e)}
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'kokovix-backup.json'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+}
+
+function blobToDataURL(blob){ return new Promise((res)=>{ const r = new FileReader(); r.onload = ()=> res(r.result); r.readAsDataURL(blob); }); }
+
+async function importJSONFile(file){ const txt = await file.text(); try{ const obj = JSON.parse(txt); if(obj.sections) { SECTIONS = normalizeSections(obj.sections); saveState(SECTIONS); renderSidebar(); } if(obj.storage){ Object.keys(obj.storage).forEach(k=> localStorage.setItem(k, obj.storage[k])); }
+    if(obj.visuals && Array.isArray(obj.visuals)){ for(const im of obj.visuals){ if(im.data){ const blob = dataURLtoBlob(im.data); await idbAddImage({id:im.id||uid('img_'), blob, caption:im.caption||'', t:im.t||Date.now()}); } }
+    }
+    alert('Import complete — UI refreshed');
+  }catch(e){ alert('Import failed: '+e.message); }
+}
 
 // keep previous nav for compatibility with some pages
 function buildLegacyNav(){
