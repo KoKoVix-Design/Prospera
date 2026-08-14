@@ -553,7 +553,14 @@ window.addEventListener('DOMContentLoaded', ()=>{
   // After attempting auto-repair, if sections still lack pillar assignments, show diagnostics
   try{
     const allUnassignedAfter = SECTIONS.length>0 && SECTIONS.every(s=> !s.pillar || !PILLARS.some(p=> p.title===s.pillar));
-    if(allUnassignedAfter){ setTimeout(()=>{ try{ showDiagnostics(); }catch(e){} }, 300); }
+    if(allUnassignedAfter){
+      // only auto-open diagnostics once per browser (use a localStorage flag)
+      if(!localStorage.getItem('kokovix.diag_shown_v1')){
+        setTimeout(()=>{ try{ showDiagnostics(); localStorage.setItem('kokovix.diag_shown_v1','1'); }catch(e){} }, 300);
+      } else {
+        console.info('kokovix: diagnostics auto-open skipped (already shown)');
+      }
+    }
   }catch(e){}
   // Open Core category first (expand and show first subsection)
   const core = SECTIONS.find(s=>s.category==='Core');
