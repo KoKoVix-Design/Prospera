@@ -583,6 +583,19 @@ window.addEventListener('DOMContentLoaded', ()=>{
     // close sidebar when clicking a section item (mobile)
     document.getElementById('sectionsList').addEventListener('click', ()=>{ if(window.matchMedia && window.matchMedia('(max-width:900px)').matches){ aside.classList.remove('open'); overlay.classList.remove('show'); } });
   }
+
+  // Extra cleanup: forcibly remove any legacy drag handle elements that might persist
+  try{
+    const cleanup = ()=>{
+      document.querySelectorAll('.drag-handle, button.drag-handle, .handle').forEach(n=>{ n.remove(); });
+      // remove any empty square elements before titles (legacy markers)
+      document.querySelectorAll('.section-header > .marker, .section-header > .handle-box').forEach(n=>{ n.remove(); });
+    };
+    cleanup();
+    // run again shortly in case render steps re-add elements asynchronously
+    setTimeout(cleanup, 250);
+    setTimeout(cleanup, 800);
+  }catch(e){ console.warn('cleanup failed', e); }
 });
 
 // Export current workspace (sections + localStorage keys + visuals)
