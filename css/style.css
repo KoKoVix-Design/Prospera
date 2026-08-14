@@ -86,8 +86,9 @@ body{margin:0;font-family:Inter,Segoe UI,Arial,sans-serif;background:linear-grad
 .drag-handle:active{cursor:grabbing}
 .section-edit{flex:1;padding:6px;border-radius:6px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:var(--text)}
 .chev{background:transparent;border:none;color:var(--muted);cursor:pointer;padding:6px;border-radius:6px;transform:rotate(0);transition:transform .18s}
-.section-item .sub-list{margin:6px 0 0 28px;list-style:none;padding:6px;display:none}
-.section-item.open .sub-list{display:block}
+.sections-list .sub-list{margin:6px 0 0 28px;list-style:none;padding:6px;display:none !important}
+.section-item.open .sub-list{display:block !important}
+.home-link{margin-bottom:10px}
 .sub-item{display:flex;justify-content:space-between;align-items:center;padding:6px;border-radius:6px}
 .sub-name{color:var(--muted);cursor:pointer}
 .section-item.drag-over{background:rgba(125,227,201,0.06)}

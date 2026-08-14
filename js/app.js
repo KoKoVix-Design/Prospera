@@ -554,6 +554,9 @@ window.addEventListener('DOMContentLoaded', ()=>{
   // Home button: return to pyramid/dashboard
   const homeBtn = document.getElementById('homeBtn'); if(homeBtn){ homeBtn.addEventListener('click', ()=>{ renderPillarView(null); document.getElementById('page-title').textContent = 'Welcome to Kokovix'; if(window.matchMedia && window.matchMedia('(max-width:900px)').matches){ const a = document.querySelector('.sidebar'); const o = document.querySelector('.content-overlay'); if(a) a.classList.remove('open'); if(o) o.classList.remove('show'); } }); }
 
+  // Header Home shortcut (always visible) — also close mobile overlay if needed
+  const headerHome = document.getElementById('headerHomeBtn'); if(headerHome){ headerHome.addEventListener('click', ()=>{ renderPillarView(null); document.getElementById('page-title').textContent = 'Welcome to Kokovix'; const a = document.querySelector('.sidebar'); const o = document.querySelector('.content-overlay'); if(a) a.classList.remove('open'); if(o) o.classList.remove('show'); }); }
+
   // Also wire repair buttons to the stronger force-apply defaults when requested
   if(repairBtn){ repairBtn.addEventListener('dblclick', ()=>{ // double-click to force-apply defaults
     try{ forceApplyDefaults(); }catch(e){ alert('Force apply failed: '+(e&&e.message)); }
