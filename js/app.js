@@ -536,8 +536,16 @@ window.addEventListener('DOMContentLoaded', ()=>{
   cleanSidebarDom();
   normalizeAndPersist();
   renderSidebar();
-  // Ensure no section is expanded on initial load
-  SECTIONS = SECTIONS.map(s=>{ s._open = false; return s; });
+  // On first visit expand sections by default; afterwards keep them collapsed
+  try{
+    const visitedFlag = localStorage.getItem('kokovix.visited_v1');
+    if(!visitedFlag){
+      SECTIONS = SECTIONS.map(s=>{ s._open = true; return s; });
+      localStorage.setItem('kokovix.visited_v1','1');
+    } else {
+      SECTIONS = SECTIONS.map(s=>{ s._open = false; return s; });
+    }
+  }catch(e){ SECTIONS = SECTIONS.map(s=>{ s._open = false; return s; }); }
   renderSidebar();
   document.getElementById('addSectionBtn').addEventListener('click', ()=>{
     const v = document.getElementById('newSectionTitle').value.trim(); if(!v) return alert('Enter a title'); addSection(v); document.getElementById('newSectionTitle').value='';
