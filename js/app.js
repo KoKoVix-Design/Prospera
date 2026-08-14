@@ -547,6 +547,14 @@ window.addEventListener('DOMContentLoaded', ()=>{
       setTimeout(()=>{ resetKokovixStorage(); }, 300);
     }
   }catch(e){ /* ignore in older browsers */ }
+  // Auto-repair on load: if any section is missing pillar metadata, attempt a silent repair
+  try{
+    const anyMissingPillar = SECTIONS.some(s=> !s.pillar);
+    if(anyMissingPillar){
+      console.info('kokovix: auto-repair triggered — filling missing pillar/category/icon from defaults');
+      autoRepairSections();
+    }
+  }catch(e){ console.warn('auto-repair check failed', e); }
   // Open Core category first (expand and show first subsection)
   const core = SECTIONS.find(s=>s.category==='Core');
   if(core){ core._open = true; renderSidebar(); if(core.subs && core.subs[0]) openSubsection(core.id, core.subs[0]); }
@@ -561,6 +569,61 @@ async function exportJSON(){
   try{ const imgs = await idbGetAll(); for(const im of imgs){ let dataURL = ''; if(im.blob){ dataURL = await blobToDataURL(im.blob); } data.visuals.push({id:im.id, caption:im.caption, data: dataURL, t:im.t}); } }catch(e){console.warn('idb export failed',e)}
   const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
   const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'kokovix-backup.json'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+}
+
+// Silent auto-repair: same logic as repairSections but without alerts — used on initial load
+function autoRepairSections(){
+  try{
+    let changed = false;
+    const raw = loadState();
+    const diagnostics = [];
+    const defMap = new Map(DEFAULT.map(d=>[(d.title||'').toString().trim().toLowerCase(), d]));
+    const defById = new Map(DEFAULT.map(d=>[d.id, d]));
+
+    raw.forEach(s=>{
+      if(!s || !s.title) return;
+      const key = s.title.toString().trim();
+      const keyL = key.toLowerCase();
+      let def = defMap.get(keyL) || defById.get(s.id);
+      if(!def){
+        def = DEFAULT.find(d=>{
+          const dt = (d.title||'').toString().toLowerCase();
+          if(dt && (keyL.includes(dt) || dt.includes(keyL))) return true;
+          if(Array.isArray(d.subs) && d.subs.some(ss=> ss.toString().toLowerCase()===keyL)) return true;
+          return false;
+        });
+      }
+
+      const changes = [];
+      if(def){
+        if(!Array.isArray(s.subs) || s.subs.length===0){ s.subs = Array.isArray(def.subs)? def.subs.slice():[]; changes.push('subs'); }
+        if(!s.pillar && def.pillar){ s.pillar = def.pillar; changes.push('pillar'); }
+        if(!s.category && def.category){ s.category = def.category; changes.push('category'); }
+        if(!s.icon && def.icon){ s.icon = def.icon; changes.push('icon'); }
+        if(Array.isArray(def.subs)){
+          def.subs.forEach(sub=>{ if(!s.subs.includes(sub)){ s.subs.push(sub); changes.push('added sub:'+sub); } });
+        }
+      } else {
+        if(!s.pillar && s.category){
+          const catL = s.category.toString().toLowerCase();
+          const p = PILLARS.find(pp=> pp.title.toLowerCase().includes(catL) || catL.includes(pp.title.toLowerCase()));
+          if(p){ s.pillar = p.title; changes.push('pillar from category->'+p.title); }
+        }
+      }
+
+      if(changes.length){ changed = true; diagnostics.push({title: s.title, changes}); }
+    });
+
+    if(changed){
+      const norm = normalizeSections(raw);
+      saveState(norm);
+      SECTIONS = norm;
+      renderSidebar();
+      console.info('kokovix: autoRepairSections applied', diagnostics);
+    } else {
+      console.info('kokovix: autoRepairSections found no changes');
+    }
+  }catch(e){ console.error('autoRepairSections failed', e); }
 }
 
 // Non-destructive repair: smarter merge of DEFAULT metadata into stored sections
