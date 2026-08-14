@@ -521,11 +521,6 @@ window.addEventListener('DOMContentLoaded', ()=>{
   const qEl = document.getElementById('quote'); if(qEl){ qEl.textContent = QUOTES[Math.floor(Math.random()*QUOTES.length)]; setInterval(()=>{ qEl.textContent = QUOTES[Math.floor(Math.random()*QUOTES.length)]; }, 8000); }
   // render interactive pyramid
   renderPyramid();
-  // If none of the sections appear to have pillars assigned, show diagnostics to help repair
-  try{
-    const allUnassigned = SECTIONS.length>0 && SECTIONS.every(s=> !s.pillar || !PILLARS.some(p=> p.title===s.pillar));
-    if(allUnassigned){ setTimeout(()=>{ try{ showDiagnostics(); }catch(e){} }, 300); }
-  }catch(e){}
   
   // One-time reset helper: clears all kokovix.* keys and restores DEFAULT sections.
   function resetKokovixStorage(){
@@ -555,6 +550,11 @@ window.addEventListener('DOMContentLoaded', ()=>{
       autoRepairSections();
     }
   }catch(e){ console.warn('auto-repair check failed', e); }
+  // After attempting auto-repair, if sections still lack pillar assignments, show diagnostics
+  try{
+    const allUnassignedAfter = SECTIONS.length>0 && SECTIONS.every(s=> !s.pillar || !PILLARS.some(p=> p.title===s.pillar));
+    if(allUnassignedAfter){ setTimeout(()=>{ try{ showDiagnostics(); }catch(e){} }, 300); }
+  }catch(e){}
   // Open Core category first (expand and show first subsection)
   const core = SECTIONS.find(s=>s.category==='Core');
   if(core){ core._open = true; renderSidebar(); if(core.subs && core.subs[0]) openSubsection(core.id, core.subs[0]); }
