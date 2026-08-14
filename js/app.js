@@ -1,17 +1,30 @@
 const DEFAULT = [
-  {id:'health', title:'Health', subs:['RHR','VO2Max','Weight','Latest Health Report','Daily Exercises','Nutrition']},
-  {id:'morning', title:'Morning Rituals', subs:['Gratitude','Meditation','Affirmations','Journal']},
-  {id:'plan', title:'Plan My Day', subs:['To Do List','One Thing for Day']},
-  {id:'reflection', title:'Reflection', subs:['Daily','Weekly','Monthly']},
-  {id:'goals', title:'Goals', subs:['Weekly','Monthly','Yearly']},
-  {id:'research', title:'Research', subs:['Daily','Weekly','Monthly']},
-  {id:'books', title:'Books', subs:['To Read','Completed']},
-  {id:'visualization', title:'Visualization', subs:['Gallery','Vision Board']},
-  {id:'productivity', title:'Productivity Methods', subs:['Deep Work','Pomodoro','Eisenhower Matrix','Time Blocking','Two-Minute Rule']},
-  {id:'habits', title:'Habits', subs:['Tracker','Streaks']},
-  {id:'mood', title:'Mood', subs:['Daily Mood','Mood Notes']},
-  {id:'sleep', title:'Sleep', subs:['Sleep Quality','Sleep Notes']},
-  {id:'hydration', title:'Hydration', subs:['Water Intake']}
+  {id:'morning', title:'Morning Rituals', category:'Core', icon:'🌅', subs:['Gratitude','Meditation','Affirmations','Journal']},
+  {id:'plan', title:'Plan My Day', category:'Core', icon:'🗓️', subs:['One Thing','To Do List','Time Blocks']},
+  {id:'night', title:'Night Rituals', category:'Core', icon:'🌙', subs:['Reflection','Sleep Notes']},
+
+  {id:'health', title:'Health', category:'Health', icon:'❤️', subs:['RHR','VO2Max','Weight','Latest Health Report','Daily Exercises','Nutrition']},
+  {id:'habits', title:'Habits', category:'Habits & Mood', icon:'🔁', subs:['Tracker','Streaks']},
+  {id:'mood', title:'Mood', category:'Habits & Mood', icon:'🙂', subs:['Daily Mood','Mood Notes']},
+
+  {id:'goals', title:'Goals', category:'Goals & Reviews', icon:'🎯', subs:['Weekly','Monthly','Yearly']},
+  {id:'reflection', title:'Reflection', category:'Goals & Reviews', icon:'🔍', subs:['Daily','Weekly','Monthly','Action Items']},
+
+  {id:'projects', title:'Projects', category:'Work & Learning', icon:'💼', subs:['Active Projects','Backlog']},
+  {id:'research', title:'Research', category:'Work & Learning', icon:'🔬', subs:['Notes','Papers','Strategy Journal']},
+  {id:'learning', title:'Learning', category:'Work & Learning', icon:'📚', subs:['Courses','Reading List','Flashcards']},
+
+  {id:'finance', title:'Finance', category:'Finance & Trading', icon:'💳', subs:['Expenses','Budgets','Subscriptions']},
+  {id:'trading', title:'Trading', category:'Finance & Trading', icon:'📈', subs:['Strategies','Trade Journal','Watchlist','Backtests']},
+
+  {id:'content', title:'Content Calendar', category:'Content & Social', icon:'✍️', subs:['Ideas','Schedule','Published']},
+  {id:'social', title:'Social', category:'Content & Social', icon:'📊', subs:['Analytics','Subscriptions','Screen Time']},
+
+  {id:'notes', title:'Notes', category:'Personal Knowledge', icon:'🗒️', subs:['Quick Notes','Templates','Archive']},
+  {id:'resources', title:'Resources', category:'Personal Knowledge', icon:'🔗', subs:['Links','Tools','References']},
+
+  {id:'visualization', title:'Visualization', category:'Visualization & Media', icon:'🖼️', subs:['Gallery','Vision Board']},
+  {id:'productivity', title:'Productivity Methods', category:'Productivity Toolbox', icon:'🧰', subs:['Pomodoro','Deep Work','Eisenhower Matrix','Time Blocking']}
 ];
 
 const QUOTES = [
@@ -44,10 +57,12 @@ function normalizeSections(arr){
   const map = new Map();
   arr.forEach(s=>{
     const key = (s.title||'').toString().trim().toLowerCase();
-    if(!map.has(key)) map.set(key, {id:s.id||uid('s_'), title:s.title, subs: Array.isArray(s.subs)?s.subs.slice():[] });
-    else { // merge subs
+    if(!map.has(key)) map.set(key, {id:s.id||uid('s_'), title:s.title, subs: Array.isArray(s.subs)?s.subs.slice():[], category: s.category||'Other', icon: s.icon||'' });
+    else { // merge subs and metadata
       const existing = map.get(key);
       (s.subs||[]).forEach(sub=>{ if(!existing.subs.includes(sub)) existing.subs.push(sub); });
+      if(s.category) existing.category = existing.category || s.category;
+      if(s.icon) existing.icon = existing.icon || s.icon;
     }
   });
   return Array.from(map.values());
@@ -61,62 +76,61 @@ let SECTIONS = loadAndNormalize();
 
 function renderSidebar(){
   const list = document.getElementById('sectionsList'); list.innerHTML='';
+  // group sections by category
+  const groups = new Map();
   SECTIONS.forEach(sec=>{
-    const li = el('li','section-item');
-    // drag now initiated from handle for clearer UX
-    li.dataset.id = sec.id;
-    li.addEventListener('dragover',(e)=> onDragOver(e));
-    li.addEventListener('dragenter',(e)=>{ li.classList.add('drag-over'); });
-    li.addEventListener('dragleave',(e)=>{ li.classList.remove('drag-over'); });
-    li.addEventListener('drop',(e)=> onSectionDrop(e, sec.id));
-    const header = el('div','section-header');
-    const handle = el('button','drag-handle','≡'); handle.title='Drag to reorder'; header.appendChild(handle);
-    handle.addEventListener('mousedown', (e)=> e.preventDefault());
-    handle.addEventListener('dragstart', (e)=>{});
-    handle.addEventListener('pointerdown', ()=>{ li.draggable = true; });
-    handle.addEventListener('pointerup', ()=>{ li.draggable = false; });
-    handle.addEventListener('dragstart',(e)=> onSectionDragStart(e, sec.id));
-    const title = el('span','section-title',sec.title);
-    title.title = 'Click to open section';
-    title.addEventListener('click', ()=> toggleExpand(sec.id));
-
-    // inline edit on double-click
-    title.addEventListener('dblclick', ()=>{
-      const inp = el('input','section-edit'); inp.value = sec.title; header.replaceChild(inp, title); inp.focus();
-      inp.addEventListener('blur', ()=>{ if(inp.value.trim()) sec.title = inp.value.trim(); saveState(SECTIONS); renderSidebar(); });
-      inp.addEventListener('keydown',(e)=>{ if(e.key==='Enter'){ inp.blur(); } });
-    });
-
-    const chevron = el('button','chev','▸'); chevron.addEventListener('click', ()=> toggleExpand(sec.id));
-    const right = el('div','sec-right');
-    const addSub = el('button','icon','＋'); addSub.title='Add subsection'; addSub.addEventListener('click', (e)=>{ e.stopPropagation(); addSubInline(sec.id); });
-    const del = el('button','icon','✕'); del.title='Delete section'; del.addEventListener('click',(e)=>{ e.stopPropagation(); deleteSection(sec.id); });
-    right.appendChild(addSub); right.appendChild(del);
-
-    header.appendChild(chevron); header.appendChild(title); header.appendChild(right);
-    li.appendChild(header);
-
-    const sublist = el('ul','sub-list'); sublist.style.display = sec._open ? 'block' : 'none';
-    sec.subs.forEach((s, idx)=>{
-      const si = el('li','sub-item'); si.draggable = true; si.dataset.sid = sec.id; si.dataset.subidx = idx;
-      si.addEventListener('dragstart',(e)=> onSubDragStart(e, sec.id, idx));
-      si.addEventListener('dragover',(e)=> onDragOver(e));
-      si.addEventListener('dragenter',(e)=>{ si.classList.add('drag-over'); });
-      si.addEventListener('dragleave',(e)=>{ si.classList.remove('drag-over'); });
-      si.addEventListener('drop',(e)=> onSubDrop(e, sec.id, idx));
-      const sn = el('span','sub-name', s);
-      sn.addEventListener('click', ()=> openSubsection(sec.id, s));
-      sn.addEventListener('dblclick', ()=>{ // inline edit
-        const inp = el('input','sub-edit'); inp.value = s; si.replaceChild(inp, sn); inp.focus();
-        inp.addEventListener('blur', ()=>{ if(inp.value.trim()){ sec.subs[idx]=inp.value.trim(); saveState(SECTIONS); renderSidebar(); openSubsection(sec.id, sec.subs[idx]); } else renderSidebar(); });
-        inp.addEventListener('keydown',(e)=>{ if(e.key==='Enter') inp.blur(); });
+    const cat = sec.category || 'Other';
+    if(!groups.has(cat)) groups.set(cat, []);
+    groups.get(cat).push(sec);
+  });
+  // preferred order for groups
+  const order = ['Core','Health','Habits & Mood','Goals & Reviews','Work & Learning','Finance & Trading','Content & Social','Personal Knowledge','Visualization & Media','Productivity Toolbox','Other'];
+  order.forEach(catName=>{
+    const items = groups.get(catName);
+    if(!items || items.length===0) return;
+    const gh = el('div','group-header',catName);
+    list.appendChild(gh);
+    items.forEach(sec=>{
+      const li = el('li','section-item'); li.dataset.id = sec.id;
+      li.addEventListener('dragover',(e)=> onDragOver(e));
+      li.addEventListener('dragenter',(e)=>{ li.classList.add('drag-over'); });
+      li.addEventListener('dragleave',(e)=>{ li.classList.remove('drag-over'); });
+      li.addEventListener('drop',(e)=> onSectionDrop(e, sec.id));
+      const header = el('div','section-header');
+      const handle = el('button','drag-handle','≡'); handle.title='Drag to reorder'; header.appendChild(handle);
+      handle.addEventListener('mousedown', (e)=> e.preventDefault());
+      handle.addEventListener('pointerdown', ()=>{ li.draggable = true; });
+      handle.addEventListener('pointerup', ()=>{ li.draggable = false; });
+      handle.addEventListener('dragstart',(e)=> onSectionDragStart(e, sec.id));
+      const chevron = el('button','chev','▸'); chevron.addEventListener('click', ()=> toggleExpand(sec.id));
+      const iconEl = el('span','section-icon', sec.icon || '');
+      const title = el('span','section-title',sec.title);
+      title.title = 'Click to open section';
+      title.addEventListener('click', ()=> toggleExpand(sec.id));
+      title.addEventListener('dblclick', ()=>{ const inp = el('input','section-edit'); inp.value = sec.title; header.replaceChild(inp, title); inp.focus(); inp.addEventListener('blur', ()=>{ if(inp.value.trim()) sec.title = inp.value.trim(); saveState(SECTIONS); renderSidebar(); }); inp.addEventListener('keydown',(e)=>{ if(e.key==='Enter'){ inp.blur(); } }); });
+      const right = el('div','sec-right');
+      const addSub = el('button','icon','＋'); addSub.title='Add subsection'; addSub.addEventListener('click', (e)=>{ e.stopPropagation(); addSubInline(sec.id); });
+      const del = el('button','icon','✕'); del.title='Delete section'; del.addEventListener('click',(e)=>{ e.stopPropagation(); deleteSection(sec.id); });
+      right.appendChild(addSub); right.appendChild(del);
+      header.appendChild(chevron); header.appendChild(iconEl); header.appendChild(title); header.appendChild(right);
+      li.appendChild(header);
+      const sublist = el('ul','sub-list'); sublist.style.display = sec._open ? 'block' : 'none';
+      sec.subs.forEach((s, idx)=>{
+        const si = el('li','sub-item'); si.draggable = true; si.dataset.sid = sec.id; si.dataset.subidx = idx;
+        si.addEventListener('dragstart',(e)=> onSubDragStart(e, sec.id, idx));
+        si.addEventListener('dragover',(e)=> onDragOver(e));
+        si.addEventListener('dragenter',(e)=>{ si.classList.add('drag-over'); });
+        si.addEventListener('dragleave',(e)=>{ si.classList.remove('drag-over'); });
+        si.addEventListener('drop',(e)=> onSubDrop(e, sec.id, idx));
+        const sn = el('span','sub-name', s);
+        sn.addEventListener('click', ()=> openSubsection(sec.id, s));
+        sn.addEventListener('dblclick', ()=>{ const inp = el('input','sub-edit'); inp.value = s; si.replaceChild(inp, sn); inp.focus(); inp.addEventListener('blur', ()=>{ if(inp.value.trim()){ sec.subs[idx]=inp.value.trim(); saveState(SECTIONS); renderSidebar(); openSubsection(sec.id, sec.subs[idx]); } else renderSidebar(); }); inp.addEventListener('keydown',(e)=>{ if(e.key==='Enter') inp.blur(); }); });
+        const sdel = el('button','icon small','−'); sdel.title='Delete subsection'; sdel.addEventListener('click',(e)=>{ e.stopPropagation(); if(confirm('Delete subsection?')){ sec.subs.splice(idx,1); saveState(SECTIONS); renderSidebar(); }});
+        si.appendChild(sn); si.appendChild(sdel); sublist.appendChild(si);
       });
-      const sdel = el('button','icon small','−'); sdel.title='Delete subsection'; sdel.addEventListener('click',(e)=>{ e.stopPropagation(); if(confirm('Delete subsection?')){ sec.subs.splice(idx,1); saveState(SECTIONS); renderSidebar(); }});
-      si.appendChild(sn); si.appendChild(sdel); sublist.appendChild(si);
+      li.appendChild(sublist);
+      list.appendChild(li);
     });
-
-    li.appendChild(sublist);
-    list.appendChild(li);
   });
 }
 
@@ -337,6 +351,9 @@ window.addEventListener('DOMContentLoaded', ()=>{
   buildLegacyNav();
   // Quote rotation
   const qEl = document.getElementById('quote'); if(qEl){ qEl.textContent = QUOTES[Math.floor(Math.random()*QUOTES.length)]; setInterval(()=>{ qEl.textContent = QUOTES[Math.floor(Math.random()*QUOTES.length)]; }, 8000); }
+  // Open Core category first (expand and show first subsection)
+  const core = SECTIONS.find(s=>s.category==='Core');
+  if(core){ core._open = true; renderSidebar(); if(core.subs && core.subs[0]) openSubsection(core.id, core.subs[0]); }
 });
 
 // Export current workspace (sections + localStorage keys + visuals)

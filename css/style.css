@@ -76,6 +76,10 @@ body{margin:0;font-family:Inter,Segoe UI,Arial,sans-serif;background:linear-grad
 .history-item button{margin-left:8px;padding:4px;border-radius:4px;border:none;background:transparent;color:var(--muted);cursor:pointer}
 .subsection{margin-bottom:12px}
 
+/* Group header and icons */
+.group-header{padding:6px 10px;color:var(--muted);font-weight:700;font-size:13px;border-top:1px solid rgba(255,255,255,0.02);margin-top:8px}
+.section-icon{margin:0 8px;font-size:18px}
+
 /* Visualization styles */
 .uploader{display:flex;flex-direction:column;gap:8px}
 .drop{border:2px dashed rgba(255,255,255,0.04);padding:20px;border-radius:10px;text-align:center;color:var(--muted);cursor:pointer}
