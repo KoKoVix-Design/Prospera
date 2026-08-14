@@ -219,6 +219,36 @@ function renderPyramid(){
   container.appendChild(svg);
 }
 
+// Remove unexpected legacy/duplicate elements inside the sidebar
+function cleanSidebarDom(){
+  const aside = document.querySelector('.sidebar'); if(!aside) return;
+  // keep these selectors
+  const keepSelectors = ['.brand', '.section-controls', '.io-controls', '#sectionsList', '#pyramid'];
+  Array.from(aside.children).forEach(ch=>{
+    const keep = keepSelectors.some(sel=> ch.matches && ch.matches(sel));
+    if(!keep){ aside.removeChild(ch); }
+  });
+  // also ensure there is only one sectionsList
+  const lists = aside.querySelectorAll('#sectionsList'); if(lists.length>1){ for(let i=1;i<lists.length;i++) lists[i].remove(); }
+}
+
+// Normalize in-memory sections and persist to localStorage if changes found
+function normalizeAndPersist(){
+  try{
+    const raw = loadState();
+    const norm = normalizeSections(raw.concat([]));
+    // if normalization reduces duplicates or changes structure, persist
+    if(JSON.stringify(norm) !== JSON.stringify(raw)){
+      saveState(norm);
+      SECTIONS = norm;
+      console.info('kokovix: normalized and persisted sections (duplicates merged)');
+      alert('Kokovix: duplicate sections were detected and merged for a cleaner sidebar.');
+    } else {
+      SECTIONS = norm; // ensure in-memory matches storage
+    }
+  }catch(e){ console.warn('normalizeAndPersist failed', e); }
+}
+
 // Drag helpers for sections
 let dragSectionId = null;
 function onSectionDragStart(e, id){ dragSectionId = id; e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', id); }
@@ -426,6 +456,9 @@ openSubsection = function(sectionId, sub){
 
 // initial UI wiring
 window.addEventListener('DOMContentLoaded', ()=>{
+  // clean up any stray legacy elements and normalize stored sections
+  cleanSidebarDom();
+  normalizeAndPersist();
   renderSidebar();
   document.getElementById('addSectionBtn').addEventListener('click', ()=>{
     const v = document.getElementById('newSectionTitle').value.trim(); if(!v) return alert('Enter a title'); addSection(v); document.getElementById('newSectionTitle').value='';
