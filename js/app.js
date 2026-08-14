@@ -515,6 +515,11 @@ window.addEventListener('DOMContentLoaded', ()=>{
   const resetBtn = document.getElementById('resetBtn'); if(resetBtn){ resetBtn.addEventListener('click', ()=> resetKokovixStorage()); }
   const repairBtn = document.getElementById('repairBtn'); if(repairBtn){ repairBtn.addEventListener('click', ()=>{ if(!confirm('Attempt a non-destructive repair by merging defaults where metadata is missing?')) return; repairSections(); }); }
   const applyRepairBtn = document.getElementById('applyRepairBtn'); if(applyRepairBtn){ applyRepairBtn.addEventListener('click', ()=>{ try{ repairSections(); showDiagnostics(); localStorage.setItem('kokovix.diag_shown_v1','1'); }catch(e){ alert('Repair failed: '+(e&&e.message)); } }); }
+
+  // Also wire repair buttons to the stronger force-apply defaults when requested
+  if(repairBtn){ repairBtn.addEventListener('dblclick', ()=>{ // double-click to force-apply defaults
+    try{ forceApplyDefaults(); }catch(e){ alert('Force apply failed: '+(e&&e.message)); }
+  }); }
   const dumpBtn = document.getElementById('dumpBtn'); if(dumpBtn){ dumpBtn.addEventListener('click', ()=> exportDiagnostics()); }
   const showDiagBtn = document.getElementById('showDiagBtn'); if(showDiagBtn){ showDiagBtn.addEventListener('click', ()=> showDiagnostics()); }
   // legacy nav removed to avoid duplicate lists
@@ -561,18 +566,7 @@ window.addEventListener('DOMContentLoaded', ()=>{
       alert('Auto-repair applied. A backup was saved to localStorage (key: kokovix.backup.before_auto_repair.v1). Use Show Diagnostics → Download to retrieve it.');
     }
   }catch(e){ console.warn('auto-repair check failed', e); }
-  // After attempting auto-repair, if sections still lack pillar assignments, show diagnostics
-  try{
-    const allUnassignedAfter = SECTIONS.length>0 && SECTIONS.every(s=> !s.pillar || !PILLARS.some(p=> p.title===s.pillar));
-    if(allUnassignedAfter){
-      // only auto-open diagnostics once per browser (use a localStorage flag)
-      if(!localStorage.getItem('kokovix.diag_shown_v1')){
-        setTimeout(()=>{ try{ showDiagnostics(); localStorage.setItem('kokovix.diag_shown_v1','1'); }catch(e){} }, 300);
-      } else {
-        console.info('kokovix: diagnostics auto-open skipped (already shown)');
-      }
-    }
-  }catch(e){}
+  // (removed auto diagnostics auto-open to avoid modal on load)
   // Open Core category first (expand and show first subsection)
   const core = SECTIONS.find(s=>s.category==='Core');
   if(core){ core._open = true; renderSidebar(); if(core.subs && core.subs[0]) openSubsection(core.id, core.subs[0]); }
@@ -713,6 +707,29 @@ function exportDiagnostics(){
     const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
     const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'kokovix-diagnostic.json'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
   }catch(e){ console.error('exportDiagnostics failed', e); alert('Export failed: '+(e && e.message)); }
+}
+
+// Force-apply DEFAULT mapping into stored sections (overwrites missing/empty fields)
+function forceApplyDefaults(){
+  try{
+    const raw = loadState();
+    const defMap = new Map(DEFAULT.map(d=>[(d.title||'').toString().trim().toLowerCase(), d]));
+    let changed = false;
+    raw.forEach(s=>{
+      if(!s || !s.title) return;
+      const key = s.title.toString().trim().toLowerCase();
+      const def = defMap.get(key);
+      if(def){
+        if(s.pillar !== def.pillar){ s.pillar = def.pillar; changed = true; }
+        if(!s.category && def.category){ s.category = def.category; changed = true; }
+        if(!s.icon && def.icon){ s.icon = def.icon; changed = true; }
+        if(!Array.isArray(s.subs) || s.subs.length===0){ s.subs = Array.isArray(def.subs)? def.subs.slice():[]; changed = true; }
+        else { def.subs.forEach(sub=>{ if(!s.subs.includes(sub)){ s.subs.push(sub); changed = true; } }); }
+      }
+    });
+    if(changed){ const norm = normalizeSections(raw); saveState(norm); SECTIONS = norm; renderSidebar(); alert('Defaults applied to stored sections.'); }
+    else { alert('No defaults needed to apply.'); }
+  }catch(e){ console.error('forceApplyDefaults failed', e); alert('Force apply failed: '+(e&&e.message)); }
 }
 
 // In-page diagnostics modal to view/copy kokovix storage without DevTools
