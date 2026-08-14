@@ -129,6 +129,8 @@ function renderSidebar(){
       const right = el('div','sec-right'); const addSub = el('button','icon','＋'); addSub.title='Add subsection'; addSub.addEventListener('click',(e)=>{ e.stopPropagation(); addSubInline(sec.id); }); const del = el('button','icon','✕'); del.title='Delete section'; del.addEventListener('click',(e)=>{ e.stopPropagation(); deleteSection(sec.id); }); right.appendChild(addSub); right.appendChild(del);
       header.appendChild(chevron); header.appendChild(iconEl); header.appendChild(title); header.appendChild(right);
       li.appendChild(header);
+      // reflect expanded state via class for CSS to control visibility
+      if(sec._open) li.classList.add('open'); else li.classList.remove('open');
       const sublist = el('ul','sub-list'); sublist.style.display = sec._open ? 'block' : 'none';
       sec.subs.forEach((s, idx)=>{ const si = el('li','sub-item'); si.draggable=true; si.dataset.sid=sec.id; si.dataset.subidx=idx; si.addEventListener('dragstart',(e)=> onSubDragStart(e, sec.id, idx)); si.addEventListener('dragover',(e)=> onDragOver(e)); si.addEventListener('dragenter',(e)=> si.classList.add('drag-over')); si.addEventListener('dragleave',(e)=> si.classList.remove('drag-over')); si.addEventListener('drop',(e)=> onSubDrop(e, sec.id, idx)); const sn = el('span','sub-name', s); sn.addEventListener('click', ()=> openSubsection(sec.id, s)); const sdel = el('button','icon small','−'); sdel.title='Delete subsection'; sdel.addEventListener('click',(e)=>{ e.stopPropagation(); if(confirm('Delete subsection?')){ sec.subs.splice(idx,1); saveState(SECTIONS); renderSidebar(); }}); si.appendChild(sn); si.appendChild(sdel); sublist.appendChild(si); });
       li.appendChild(sublist); list.appendChild(li);
