@@ -547,7 +547,17 @@ window.addEventListener('DOMContentLoaded', ()=>{
     const anyMissingPillar = SECTIONS.some(s=> !s.pillar);
     if(anyMissingPillar){
       console.info('kokovix: auto-repair triggered — filling missing pillar/category/icon from defaults');
+      // create a one-time backup download of current kokovix storage before repair
+      try{
+        const data = { sectionsKey: STORAGE_KEY, sections: localStorage.getItem(STORAGE_KEY), kokovix: {} };
+        Object.keys(localStorage).forEach(k=>{ if(k.startsWith('kokovix.') || k===STORAGE_KEY) data.kokovix[k]=localStorage.getItem(k); });
+        const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+        const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'kokovix-backup-before-auto-repair.json'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+      }catch(e){ console.warn('kokovix: backup before repair failed', e); }
       autoRepairSections();
+      // mark diagnostics as shown so modal doesn't auto-open again
+      try{ localStorage.setItem('kokovix.diag_shown_v1','1'); }catch(e){}
+      alert('Auto-repair applied. A backup was downloaded to your computer before repair.');
     }
   }catch(e){ console.warn('auto-repair check failed', e); }
   // After attempting auto-repair, if sections still lack pillar assignments, show diagnostics
