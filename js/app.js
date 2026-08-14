@@ -143,6 +143,25 @@ function renderSidebar(){
 function focusPillar(pillarTitle){
   if(activePillar === pillarTitle) { activePillar = null; } else { activePillar = pillarTitle; }
   renderSidebar();
+  // Debug/fix: ensure Home button exists and all sections are collapsed (helps in case of cached/old builds)
+  try{
+    const sectionsListEl = document.getElementById('sectionsList');
+    if(sectionsListEl){
+      // if persistent Home markup is missing, create and insert it above io-controls
+      if(!document.getElementById('homeBtn')){
+        const sc = document.querySelector('.section-controls');
+        const homeDiv = document.createElement('div'); homeDiv.className='home-link';
+        const btn = document.createElement('button'); btn.id='homeBtn'; btn.className='nav-button'; btn.innerHTML = '<span class="section-icon">🏠</span><span class="label">Home</span>';
+        btn.addEventListener('click', ()=>{ renderPillarView(null); document.getElementById('page-title').textContent = 'Welcome to Kokovix'; const a = document.querySelector('.sidebar'); const o = document.querySelector('.content-overlay'); if(a) a.classList.remove('open'); if(o) o.classList.remove('show'); });
+        homeDiv.appendChild(btn);
+        if(sc && sc.parentNode) sc.parentNode.insertBefore(homeDiv, sc.nextSibling);
+        else document.querySelector('.sidebar').insertBefore(homeDiv, sectionsListEl);
+      }
+      // force-collapse any expanded sections
+      document.querySelectorAll('.section-item').forEach(li=>{ li.classList.remove('open'); const ul = li.querySelector('.sub-list'); if(ul) ul.style.display='none'; });
+      console.log('kokovix: debug - homeBtnExists=', !!document.getElementById('homeBtn'));
+    }
+  }catch(e){ console.warn('kokovix debug fix failed', e); }
   renderPyramid();
   renderPillarView(activePillar);
 }
