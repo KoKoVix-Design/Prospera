@@ -94,15 +94,6 @@ let activePillar = null;
 
 function renderSidebar(){
   const list = document.getElementById('sectionsList'); list.innerHTML='';
-  // Add a Home item at the top to return to the pyramid/dashboard
-  try{
-    const homeLi = el('li','section-item home-item');
-    const homeHeader = el('div','section-header');
-    const homeIcon = el('span','section-icon','🏠');
-    const homeTitle = el('span','section-title','Home');
-    homeTitle.addEventListener('click', ()=>{ renderPillarView(null); document.getElementById('page-title').textContent = 'Welcome to Kokovix'; if(window.matchMedia && window.matchMedia('(max-width:900px)').matches){ const a = document.querySelector('.sidebar'); const o = document.querySelector('.content-overlay'); if(a) a.classList.remove('open'); if(o) o.classList.remove('show'); } });
-    homeHeader.appendChild(homeIcon); homeHeader.appendChild(homeTitle); homeLi.appendChild(homeHeader); list.appendChild(homeLi);
-  }catch(e){/* ignore if element missing */}
   // dedupe
   const unique = [];
   const seen = new Set();
@@ -173,8 +164,8 @@ function renderPyramid(){
   if(!container.classList.contains('pyramid')) container.classList.add('pyramid');
   container.innerHTML='';
   const ns = 'http://www.w3.org/2000/svg';
-  const pctWidth = Math.max(320, container.clientWidth || 320);
-  const width = pctWidth; const height = 320;
+  const pctWidth = Math.max(480, container.clientWidth || 480);
+  const width = pctWidth; const height = 420;
   const svg = document.createElementNS(ns, 'svg'); svg.setAttribute('viewBox', `0 0 ${width} ${height}`); svg.setAttribute('preserveAspectRatio','xMidYMid meet'); svg.classList.add('pyramid-large');
   const n = PILLARS.length;
   const layerH = height / n;
@@ -536,16 +527,8 @@ window.addEventListener('DOMContentLoaded', ()=>{
   cleanSidebarDom();
   normalizeAndPersist();
   renderSidebar();
-  // On first visit expand sections by default; afterwards keep them collapsed
-  try{
-    const visitedFlag = localStorage.getItem('kokovix.visited_v1');
-    if(!visitedFlag){
-      SECTIONS = SECTIONS.map(s=>{ s._open = true; return s; });
-      localStorage.setItem('kokovix.visited_v1','1');
-    } else {
-      SECTIONS = SECTIONS.map(s=>{ s._open = false; return s; });
-    }
-  }catch(e){ SECTIONS = SECTIONS.map(s=>{ s._open = false; return s; }); }
+  // Keep all sections collapsed on initial load by default
+  SECTIONS = SECTIONS.map(s=>{ s._open = false; return s; });
   renderSidebar();
   document.getElementById('addSectionBtn').addEventListener('click', ()=>{
     const v = document.getElementById('newSectionTitle').value.trim(); if(!v) return alert('Enter a title'); addSection(v); document.getElementById('newSectionTitle').value='';

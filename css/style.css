@@ -120,7 +120,7 @@ body{margin:0;font-family:Inter,Segoe UI,Arial,sans-serif;background:linear-grad
 
 /* Pyramid dashboard */
 .pyramid{margin-top:12px}
-.pyramid svg{width:100%;height:260px;display:block}
+.pyramid svg{width:100%;height:420px;display:block}
 .pyramid-layer{transition:transform .15s, filter .15s, opacity .12s}
 .pyramid-layer{cursor:pointer}
 .pyramid-layer.active{filter:brightness(1.06) drop-shadow(0 8px 18px rgba(0,0,0,0.45));transform:translateY(-6px)}
