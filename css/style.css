@@ -82,10 +82,12 @@ body{margin:0;font-family:Inter,Segoe UI,Arial,sans-serif;background:linear-grad
 
 /* Pyramid dashboard */
 .pyramid{margin-top:12px}
-.pyramid-wrap{display:flex;flex-direction:column-reverse;align-items:stretch;gap:6px}
-.pyramid-layer{border-radius:8px;padding:6px 8px;color:white;border:none;cursor:pointer;font-weight:700;box-shadow:0 6px 14px rgba(2,6,23,0.5)}
-.pyramid-layer.active{outline:3px solid rgba(255,255,255,0.08);transform:translateY(-2px)}
-.pyramid-layer:hover{opacity:0.95}
+.pyramid svg{width:100%;height:140px;display:block}
+.pyramid-layer{transition:transform .15s, filter .15s, opacity .12s}
+.pyramid-layer{cursor:pointer}
+.pyramid-layer.active{filter:brightness(1.06) drop-shadow(0 8px 18px rgba(0,0,0,0.45));transform:translateY(-6px)}
+.pyramid-layer.hover{filter:brightness(1.04)}
+.pyramid text{pointer-events:none;font-family:Inter,Segoe UI,Arial,sans-serif}
 
 /* Visualization styles */
 .uploader{display:flex;flex-direction:column;gap:8px}

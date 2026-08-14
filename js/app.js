@@ -166,18 +166,40 @@ function renderPyramid(){
   const container = document.getElementById('pyramid');
   if(!container) return;
   container.innerHTML='';
-  // build pyramid layers bottom-up
-  const wrap = el('div','pyramid-wrap');
+  const ns = 'http://www.w3.org/2000/svg';
+  const pctWidth = Math.max(140, container.clientWidth || 160);
+  const width = pctWidth; const height = 220;
+  const svg = document.createElementNS(ns, 'svg'); svg.setAttribute('viewBox', `0 0 ${width} ${height}`); svg.setAttribute('preserveAspectRatio','xMidYMid meet'); svg.style.width='100%'; svg.style.height='140px';
+  const n = PILLARS.length;
+  const layerH = height / n;
+  const shrink = 0.12; // fraction to shrink each layer relative to full width
   PILLARS.forEach((p, idx)=>{
-    const layer = el('button','pyramid-layer', `${p.icon} ${p.title}`);
-    layer.style.background = p.color;
-    layer.dataset.pillar = p.title;
-    layer.title = p.tagline;
-    layer.addEventListener('click', ()=> focusPillar(p.title));
-    if(activePillar === p.title) layer.classList.add('active');
-    wrap.appendChild(layer);
+    // draw bottom-up: idx 0 is bottom
+    const bottomY = height - (idx * layerH);
+    const topY = height - ((idx+1) * layerH);
+    const frac = 1 - (idx * shrink);
+    const layerW = Math.max(40, width * frac);
+    const leftX = (width - layerW) / 2;
+    const rightX = leftX + layerW;
+    const points = `${leftX},${bottomY} ${rightX},${bottomY} ${rightX},${topY} ${leftX},${topY}`;
+    const poly = document.createElementNS(ns, 'polygon');
+    poly.setAttribute('points', points);
+    poly.setAttribute('fill', p.color);
+    poly.setAttribute('stroke', 'rgba(0,0,0,0.2)');
+    poly.setAttribute('data-pillar', p.title);
+    poly.classList.add('pyramid-layer');
+    // tooltip
+    const tt = document.createElementNS(ns, 'title'); tt.textContent = `${p.title} — ${p.tagline}`; poly.appendChild(tt);
+    poly.addEventListener('click', ()=> focusPillar(p.title));
+    poly.addEventListener('mouseenter', ()=> poly.classList.add('hover'));
+    poly.addEventListener('mouseleave', ()=> poly.classList.remove('hover'));
+    if(activePillar === p.title) poly.classList.add('active');
+    // label text centered
+    const tx = document.createElementNS(ns, 'text'); tx.setAttribute('x', width/2); tx.setAttribute('y', topY + (layerH/2)+6); tx.setAttribute('fill','white'); tx.setAttribute('text-anchor','middle'); tx.setAttribute('font-size','12'); tx.setAttribute('font-weight','700'); tx.textContent = `${p.icon} ${p.title}`;
+    svg.appendChild(poly);
+    svg.appendChild(tx);
   });
-  container.appendChild(wrap);
+  container.appendChild(svg);
 }
 
 // Drag helpers for sections
