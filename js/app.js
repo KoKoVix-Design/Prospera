@@ -513,6 +513,7 @@ window.addEventListener('DOMContentLoaded', ()=>{
   if(importBtn && importFile){ importBtn.addEventListener('click', ()=> importFile.click()); importFile.addEventListener('change', (e)=>{ if(e.target.files.length) importJSONFile(e.target.files[0]); }); }
   const previewBtn = document.getElementById('previewBtn'); if(previewBtn){ previewBtn.addEventListener('click', ()=> showMigrationPreview()); }
   const resetBtn = document.getElementById('resetBtn'); if(resetBtn){ resetBtn.addEventListener('click', ()=> resetKokovixStorage()); }
+  const repairBtn = document.getElementById('repairBtn'); if(repairBtn){ repairBtn.addEventListener('click', ()=>{ if(!confirm('Attempt a non-destructive repair by merging defaults where metadata is missing?')) return; repairSections(); }); }
   // legacy nav removed to avoid duplicate lists
   // Quote rotation
   const qEl = document.getElementById('quote'); if(qEl){ qEl.textContent = QUOTES[Math.floor(Math.random()*QUOTES.length)]; setInterval(()=>{ qEl.textContent = QUOTES[Math.floor(Math.random()*QUOTES.length)]; }, 8000); }
@@ -553,6 +554,35 @@ async function exportJSON(){
   try{ const imgs = await idbGetAll(); for(const im of imgs){ let dataURL = ''; if(im.blob){ dataURL = await blobToDataURL(im.blob); } data.visuals.push({id:im.id, caption:im.caption, data: dataURL, t:im.t}); } }catch(e){console.warn('idb export failed',e)}
   const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
   const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'kokovix-backup.json'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+}
+
+// Non-destructive repair: merge DEFAULT metadata (pillar/category/icon/subs) into stored sections
+function repairSections(){
+  try{
+    let changed = false;
+    const raw = loadState();
+    // map defaults by normalized title
+    const defMap = new Map(); DEFAULT.forEach(d=> defMap.set((d.title||'').toString().trim().toLowerCase(), d));
+    raw.forEach(s=>{
+      if(!s || !s.title) return;
+      const key = s.title.toString().trim().toLowerCase();
+      const def = defMap.get(key);
+      if(def){
+        // ensure subs array
+        if(!Array.isArray(s.subs) || s.subs.length===0){ s.subs = Array.isArray(def.subs)? def.subs.slice():[]; changed = true; }
+        // ensure pillar/category/icon
+        if(!s.pillar && def.pillar){ s.pillar = def.pillar; changed = true; }
+        if(!s.category && def.category){ s.category = def.category; changed = true; }
+        if(!s.icon && def.icon){ s.icon = def.icon; changed = true; }
+        // merge missing default subs
+        if(Array.isArray(def.subs)){
+          def.subs.forEach(sub=>{ if(!s.subs.includes(sub)){ s.subs.push(sub); changed = true; } });
+        }
+      }
+    });
+    if(changed){ const norm = normalizeSections(raw); saveState(norm); SECTIONS = norm; renderSidebar(); alert('Repair applied — missing metadata merged from defaults.'); }
+    else { alert('No repair needed — data looks healthy.'); }
+  }catch(e){ console.error('repairSections failed', e); alert('Repair failed: '+e.message); }
 }
 
 function blobToDataURL(blob){ return new Promise((res)=>{ const r = new FileReader(); r.onload = ()=> res(r.result); r.readAsDataURL(blob); }); }
