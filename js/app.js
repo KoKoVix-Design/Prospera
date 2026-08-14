@@ -515,6 +515,7 @@ window.addEventListener('DOMContentLoaded', ()=>{
   const resetBtn = document.getElementById('resetBtn'); if(resetBtn){ resetBtn.addEventListener('click', ()=> resetKokovixStorage()); }
   const repairBtn = document.getElementById('repairBtn'); if(repairBtn){ repairBtn.addEventListener('click', ()=>{ if(!confirm('Attempt a non-destructive repair by merging defaults where metadata is missing?')) return; repairSections(); }); }
   const dumpBtn = document.getElementById('dumpBtn'); if(dumpBtn){ dumpBtn.addEventListener('click', ()=> exportDiagnostics()); }
+  const showDiagBtn = document.getElementById('showDiagBtn'); if(showDiagBtn){ showDiagBtn.addEventListener('click', ()=> showDiagnostics()); }
   // legacy nav removed to avoid duplicate lists
   // Quote rotation
   const qEl = document.getElementById('quote'); if(qEl){ qEl.textContent = QUOTES[Math.floor(Math.random()*QUOTES.length)]; setInterval(()=>{ qEl.textContent = QUOTES[Math.floor(Math.random()*QUOTES.length)]; }, 8000); }
@@ -626,6 +627,28 @@ function exportDiagnostics(){
     const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
     const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'kokovix-diagnostic.json'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
   }catch(e){ console.error('exportDiagnostics failed', e); alert('Export failed: '+(e && e.message)); }
+}
+
+// In-page diagnostics modal to view/copy kokovix storage without DevTools
+function showDiagnostics(){
+  try{
+    const data = { sectionsKey: STORAGE_KEY, sections: null, kokovix: {} };
+    data.sections = localStorage.getItem(STORAGE_KEY);
+    Object.keys(localStorage).forEach(k=>{ if(k.startsWith('kokovix.') || k===STORAGE_KEY) data.kokovix[k]=localStorage.getItem(k); });
+
+    const overlay = el('div','modal-overlay');
+    const modal = el('div','modal');
+    const h = el('h3',null,'Kokovix Diagnostics'); modal.appendChild(h);
+    const body = el('div','modal-body');
+    const txt = el('textarea',null, JSON.stringify(data, null, 2)); txt.style.width='100%'; txt.style.height='320px'; txt.style.background='transparent'; txt.style.color='var(--text)'; txt.style.border='1px solid rgba(255,255,255,0.03)'; body.appendChild(txt);
+    modal.appendChild(body);
+    const actions = el('div','modal-actions');
+    const copyBtn = el('button','btn','Copy to Clipboard'); copyBtn.addEventListener('click', async ()=>{ try{ await navigator.clipboard.writeText(txt.value); alert('Copied to clipboard'); }catch(e){ alert('Copy failed: '+e.message); } });
+    const dlBtn = el('button','btn small','Download'); dlBtn.addEventListener('click', ()=>{ const blob = new Blob([txt.value], {type:'application/json'}); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'kokovix-diagnostic.json'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url); });
+    const closeBtn = el('button','btn ghost','Close'); closeBtn.addEventListener('click', ()=> overlay.remove());
+    actions.appendChild(copyBtn); actions.appendChild(dlBtn); actions.appendChild(closeBtn); modal.appendChild(actions);
+    overlay.appendChild(modal); document.body.appendChild(overlay);
+  }catch(e){ console.error('showDiagnostics failed', e); alert('Diagnostics failed: '+(e && e.message)); }
 }
 
 function blobToDataURL(blob){ return new Promise((res)=>{ const r = new FileReader(); r.onload = ()=> res(r.result); r.readAsDataURL(blob); }); }
