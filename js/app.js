@@ -567,9 +567,7 @@ window.addEventListener('DOMContentLoaded', ()=>{
     }
   }catch(e){ console.warn('auto-repair check failed', e); }
   // (removed auto diagnostics auto-open to avoid modal on load)
-  // Open Core category first (expand and show first subsection)
-  const core = SECTIONS.find(s=>s.category==='Core');
-  if(core){ core._open = true; renderSidebar(); if(core.subs && core.subs[0]) openSubsection(core.id, core.subs[0]); }
+  // Do not auto-open any section on load; keep all sections collapsed by default
 
   // Mobile sidebar toggle
   const toggleBtn = document.getElementById('toggleSidebarBtn');
