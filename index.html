@@ -10,7 +10,12 @@
     <div class="app">
       <aside class="sidebar">
         <div class="brand">Kokovix</div>
-        <nav id="nav"></nav>
+        <div class="section-controls">
+          <input id="newSectionTitle" placeholder="New section title" />
+          <button id="addSectionBtn">Add Section</button>
+        </div>
+        <ul id="sectionsList" class="sections-list"></ul>
+        <nav id="nav" style="margin-top:12px"></nav>
       </aside>
 
       <main class="main">
@@ -20,7 +25,7 @@
         </header>
 
         <section id="content" class="content">
-          <p>Select a section from the left to get started.</p>
+          <p>Select or create a section from the left to get started.</p>
         </section>
       </main>
     </div>
