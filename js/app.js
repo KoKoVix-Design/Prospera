@@ -139,6 +139,8 @@ function focusPillar(pillarTitle){
 function renderPyramid(){
   const container = document.getElementById('dashboard') || document.getElementById('pyramid');
   if(!container) return;
+  // Ensure container carries the expected class so CSS rules for `.pyramid svg` apply
+  if(!container.classList.contains('pyramid')) container.classList.add('pyramid');
   container.innerHTML='';
   const ns = 'http://www.w3.org/2000/svg';
   const pctWidth = Math.max(320, container.clientWidth || 320);
