@@ -467,6 +467,7 @@ window.addEventListener('DOMContentLoaded', ()=>{
   const exportBtn = document.getElementById('exportBtn'); const importBtn = document.getElementById('importBtn'); const importFile = document.getElementById('importFile');
   if(exportBtn){ exportBtn.addEventListener('click', exportJSON); }
   if(importBtn && importFile){ importBtn.addEventListener('click', ()=> importFile.click()); importFile.addEventListener('change', (e)=>{ if(e.target.files.length) importJSONFile(e.target.files[0]); }); }
+  const resetBtn = document.getElementById('resetBtn'); if(resetBtn){ resetBtn.addEventListener('click', ()=> resetKokovixStorage()); }
   // legacy nav removed to avoid duplicate lists
   // Quote rotation
   const qEl = document.getElementById('quote'); if(qEl){ qEl.textContent = QUOTES[Math.floor(Math.random()*QUOTES.length)]; setInterval(()=>{ qEl.textContent = QUOTES[Math.floor(Math.random()*QUOTES.length)]; }, 8000); }
