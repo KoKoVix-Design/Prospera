@@ -530,6 +530,9 @@ window.addEventListener('DOMContentLoaded', ()=>{
   const repairBtn = document.getElementById('repairBtn'); if(repairBtn){ repairBtn.addEventListener('click', ()=>{ if(!confirm('Attempt a non-destructive repair by merging defaults where metadata is missing?')) return; repairSections(); }); }
   const applyRepairBtn = document.getElementById('applyRepairBtn'); if(applyRepairBtn){ applyRepairBtn.addEventListener('click', ()=>{ try{ repairSections(); showDiagnostics(); localStorage.setItem('kokovix.diag_shown_v1','1'); }catch(e){ alert('Repair failed: '+(e&&e.message)); } }); }
 
+  // Home button: return to pyramid/dashboard
+  const homeBtn = document.getElementById('homeBtn'); if(homeBtn){ homeBtn.addEventListener('click', ()=>{ renderPillarView(null); document.getElementById('page-title').textContent = 'Welcome to Kokovix'; if(window.matchMedia && window.matchMedia('(max-width:900px)').matches){ const a = document.querySelector('.sidebar'); const o = document.querySelector('.content-overlay'); if(a) a.classList.remove('open'); if(o) o.classList.remove('show'); } }); }
+
   // Also wire repair buttons to the stronger force-apply defaults when requested
   if(repairBtn){ repairBtn.addEventListener('dblclick', ()=>{ // double-click to force-apply defaults
     try{ forceApplyDefaults(); }catch(e){ alert('Force apply failed: '+(e&&e.message)); }

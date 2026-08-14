@@ -61,6 +61,10 @@ body{margin:0;font-family:Inter,Segoe UI,Arial,sans-serif;background:linear-grad
 .section-controls{display:flex;gap:8px;margin-bottom:12px}
 .section-controls input{flex:1;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:var(--text)}
 .section-controls button{padding:8px;border-radius:8px;border:none;background:var(--accent-2);color:#022;cursor:pointer}
+/* Home link styling in sidebar */
+.home-link{margin-bottom:10px}
+.home-link .nav-button{display:flex;align-items:center;gap:8px;padding:8px;border-radius:8px;background:linear-gradient(90deg,var(--accent),var(--accent-2));color:#022;border:none;cursor:pointer}
+.home-link .nav-button .label{font-weight:700}
 .io-controls{display:flex;gap:8px;margin-bottom:12px}
 .io-controls .small{background:rgba(255,255,255,0.03);color:var(--text);border:1px solid rgba(255,255,255,0.02)}
 .io-controls .small.reset{background:transparent;color:#ffb4b4;border:1px solid rgba(255,180,180,0.08)}
