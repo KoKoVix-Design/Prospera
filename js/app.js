@@ -472,6 +472,27 @@ window.addEventListener('DOMContentLoaded', ()=>{
   const qEl = document.getElementById('quote'); if(qEl){ qEl.textContent = QUOTES[Math.floor(Math.random()*QUOTES.length)]; setInterval(()=>{ qEl.textContent = QUOTES[Math.floor(Math.random()*QUOTES.length)]; }, 8000); }
   // render interactive pyramid
   renderPyramid();
+  
+  // One-time reset helper: clears all kokovix.* keys and restores DEFAULT sections.
+  function resetKokovixStorage(){
+    if(!confirm('This will permanently clear all Kokovix local data (history, visuals, sections). Proceed?')) return;
+    Object.keys(localStorage).forEach(k=>{ if(k.startsWith('kokovix.') || k===STORAGE_KEY) localStorage.removeItem(k); });
+    saveState(JSON.parse(JSON.stringify(DEFAULT)));
+    alert('Kokovix storage cleared and defaults restored. Reloading...');
+    // reload without query param
+    const url = new URL(window.location.href);
+    url.searchParams.delete('reset_kokovix');
+    window.location.replace(url.toString());
+  }
+  
+  // If URL contains ?reset_kokovix=1 then run the one-time reset automatically
+  try{
+    const qp = new URLSearchParams(window.location.search || '');
+    if(qp.get('reset_kokovix')==='1'){
+      // small delay to allow DOM to settle
+      setTimeout(()=>{ resetKokovixStorage(); }, 300);
+    }
+  }catch(e){ /* ignore in older browsers */ }
   // Open Core category first (expand and show first subsection)
   const core = SECTIONS.find(s=>s.category==='Core');
   if(core){ core._open = true; renderSidebar(); if(core.subs && core.subs[0]) openSubsection(core.id, core.subs[0]); }
