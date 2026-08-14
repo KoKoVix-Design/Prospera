@@ -268,6 +268,53 @@ function migrateSections(){
   if(changed){ saveState(normalizeSections(raw)); SECTIONS = normalizeSections(raw); }
 }
 
+// Build a non-destructive preview of what would be merged/removed
+function computeMigrationPreview(){
+  const raw = loadState();
+  const health = raw.find(s=> (s.title||'').toString().trim().toLowerCase()==='health');
+  const healthSubs = health ? (Array.isArray(health.subs)? health.subs.slice():[]) : [];
+  const toRemove = [];
+  const additions = new Set();
+  const mergedFrom = {};
+  const moveTitles = ['sleep','hydration'];
+  raw.forEach(s=>{
+    if(!s || !s.title) return;
+    const t = s.title.toString().trim().toLowerCase();
+    if(moveTitles.includes(t) || (s.category && s.category.toLowerCase()==='health' && (t==='sleep' || t==='hydration'))){
+      toRemove.push(s.title);
+      mergedFrom[s.title] = Array.isArray(s.subs) ? s.subs.slice() : [];
+      if(mergedFrom[s.title].length===0) mergedFrom[s.title].push(s.title);
+      mergedFrom[s.title].forEach(sub=>{ if(!healthSubs.includes(sub)) additions.add(sub); });
+    }
+  });
+  return {toRemove, additions: Array.from(additions), mergedFrom};
+}
+
+function showMigrationPreview(){
+  const p = computeMigrationPreview();
+  // build modal
+  const overlay = el('div','modal-overlay');
+  const modal = el('div','modal');
+  const h = el('h3',null,'Migration Preview — Health consolidation'); modal.appendChild(h);
+  const body = el('div','modal-body');
+  if(p.toRemove.length===0){ body.appendChild(el('div',null,'No Sleep/Hydration or movable health items were found.')); }
+  else{
+    body.appendChild(el('div',null,`Sections that would be removed: ${p.toRemove.join(', ')}`));
+    body.appendChild(el('div',null,'Subsections that would be added to Health:')); 
+    const ul = el('ul',null); p.additions.forEach(a=> ul.appendChild(el('li',null,a))); body.appendChild(ul);
+    body.appendChild(el('div',null,'Source mapping:'));
+    const map = el('ul',null);
+    Object.keys(p.mergedFrom).forEach(k=>{ const li = el('li',null, `${k} → ${ (p.mergedFrom[k].length ? p.mergedFrom[k].join(', ') : k) }`); map.appendChild(li); });
+    body.appendChild(map);
+  }
+  modal.appendChild(body);
+  const actions = el('div','modal-actions');
+  const closeBtn = el('button','btn ghost','Close'); closeBtn.addEventListener('click', ()=> overlay.remove());
+  const applyBtn = el('button','btn','Apply Migration'); applyBtn.addEventListener('click', ()=>{ overlay.remove(); migrateSections(); renderSidebar(); alert('Migration applied — duplicates merged.'); });
+  actions.appendChild(closeBtn); actions.appendChild(applyBtn); modal.appendChild(actions);
+  overlay.appendChild(modal); document.body.appendChild(overlay);
+}
+
 // Drag helpers for sections
 let dragSectionId = null;
 function onSectionDragStart(e, id){ dragSectionId = id; e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', id); }
@@ -486,6 +533,7 @@ window.addEventListener('DOMContentLoaded', ()=>{
   const exportBtn = document.getElementById('exportBtn'); const importBtn = document.getElementById('importBtn'); const importFile = document.getElementById('importFile');
   if(exportBtn){ exportBtn.addEventListener('click', exportJSON); }
   if(importBtn && importFile){ importBtn.addEventListener('click', ()=> importFile.click()); importFile.addEventListener('change', (e)=>{ if(e.target.files.length) importJSONFile(e.target.files[0]); }); }
+  const previewBtn = document.getElementById('previewBtn'); if(previewBtn){ previewBtn.addEventListener('click', ()=> showMigrationPreview()); }
   const resetBtn = document.getElementById('resetBtn'); if(resetBtn){ resetBtn.addEventListener('click', ()=> resetKokovixStorage()); }
   // legacy nav removed to avoid duplicate lists
   // Quote rotation

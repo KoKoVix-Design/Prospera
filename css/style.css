@@ -47,6 +47,14 @@ body{margin:0;font-family:Inter,Segoe UI,Arial,sans-serif;background:linear-grad
 .io-controls .small{background:rgba(255,255,255,0.03);color:var(--text);border:1px solid rgba(255,255,255,0.02)}
 .io-controls .small.reset{background:transparent;color:#ffb4b4;border:1px solid rgba(255,180,180,0.08)}
 .io-controls .small.reset:hover{background:rgba(255,180,180,0.02)}
+
+/* Modal preview */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;z-index:10000}
+.modal{background:linear-gradient(180deg,#071026,#0b1228);padding:18px;border-radius:12px;width:90%;max-width:720px;border:1px solid rgba(255,255,255,0.04)}
+.modal h3{margin:0 0 8px}
+.modal .modal-body{max-height:60vh;overflow:auto;padding:8px 0}
+.modal .modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}
+.modal .btn.ghost{background:transparent;color:var(--muted);border:1px solid rgba(255,255,255,0.03)}
 .sections-list{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:8px}
 .section-item{display:block;padding:6px;border-radius:8px;background:transparent}
 .section-header{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:8px}
